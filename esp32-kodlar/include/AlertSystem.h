@@ -39,12 +39,7 @@ public:
         uint8_t buzzerPin,
         uint8_t ledPin,
         bool buzzerActiveHigh = true,
-        bool ledActiveHigh = true,
-        uint8_t blueLedPin = 255,
-        bool blueLedActiveHigh = true,
-        uint8_t redLedPin = 255,
-        bool redLedActiveHigh = true,
-        uint8_t ledExpanderAddress = 0
+        bool ledActiveHigh = true
     );
 
     /**
@@ -118,16 +113,9 @@ private:
 
     uint8_t _buzzerPin;
     uint8_t _ledPin;
-    uint8_t _blueLedPin;
-    uint8_t _redLedPin;
 
     bool _buzzerActiveHigh;
     bool _ledActiveHigh;
-    bool _blueLedActiveHigh;
-    bool _redLedActiveHigh;
-    uint8_t _ledExpanderAddress;
-    uint8_t _ledExpanderState;
-    uint32_t _lastLedExpanderErrorAtMs;
 
     AlertPattern _activePattern;
 
@@ -166,18 +154,4 @@ private:
 
     void applyCurrentStep();
     void finishPattern();
-    void setBlueLed(bool enabled);
-    void setRedLed(bool enabled);
-    void writeLedOutput(
-        uint8_t pin,
-        bool enabled,
-        bool activeHigh
-    );
-    bool writeLedExpanderState();
-
-    void writeOutput(
-        uint8_t pin,
-        bool enabled,
-        bool activeHigh
-    );
 };

@@ -42,10 +42,11 @@
 #define I2C_SCL_PIN 17
 // PCF8574T RGB LED genisletici: A0/A1=OFF, A2=ON -> 0x24.
 // Ortak arti (common-anode) RGB LED: P0=kirmizi, P3=yesil, P5=mavi.
-#define PCF8574_LED_ADDRESS 0x24
-#define LED_RED_PIN 0
-#define LED_GREEN_PIN 3
-#define LED_BLUE_PIN 5
+//#define PCF8574_LED_ADDRESS 0x24
+//#define LED_RED_PIN 0
+//#define LED_GREEN_PIN 3
+//#define LED_BLUE_PIN 5
+#define LED_PIN 26
 // Keypad dogrudan ESP32 GPIO pinlerine baglidir.
 #define KEYPAD_ROW_1 4
 #define KEYPAD_ROW_2 16

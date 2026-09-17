@@ -33,10 +33,6 @@ bool LcdDisplay::initializeDisplay() {
         _lcd = new LiquidCrystal_I2C(_address, COLUMN_COUNT, 2);
     }
 
-    // Bu kutuphanenin init() metodu Wire.begin() cagirdigi icin ESP32'de
-    // ozel SCL pinimizi (GPIO17) varsayilan GPIO22'ye geri ceviriyor.
-    // I2C hatti yukarida GPIO21/GPIO17 ile baslatildi; begin() ekrani
-    // ayni hat uzerinden ilk kullanima hazirlar.
     _lcd->begin(COLUMN_COUNT, 2);
     _lcd->backlight();
     _lcd->clear();
@@ -77,8 +73,6 @@ void LcdDisplay::update() {
         return;
     }
 
-    // Role veya diger donanimlardan gelen elektriksel parazit LCD'nin
-    // ekran/backlight bitlerini bozarsa son iki satiri otomatik geri yukle.
     _lcd->display();
     _lcd->backlight();
     writeCurrentLines();
@@ -152,12 +146,8 @@ void LcdDisplay::showMqttDisconnected() {
 }
 
 bool LcdDisplay::detectAddress() {
-    // RGB LED icin eklenen PCF8574T LCD sirt kartiyla ayni adres ailesindedir.
-    // Once yaygin LCD adreslerini dene ve LED genisletici adresini
-    // kesinlikle LCD olarak secme.
     const uint8_t preferredAddresses[] = {0x27, 0x3F};
     for (const uint8_t address : preferredAddresses) {
-        if (address == PCF8574_LED_ADDRESS) continue;
         Wire.beginTransmission(address);
         if (Wire.endTransmission() == 0) {
             _address = address;
@@ -167,7 +157,6 @@ bool LcdDisplay::detectAddress() {
     }
 
     for (uint8_t address = 1; address < 127; ++address) {
-        if (address == PCF8574_LED_ADDRESS) continue;
         Wire.beginTransmission(address);
         if (Wire.endTransmission() == 0) {
             Serial.printf("[LCD] I2C cihaz bulundu: 0x%02X\n", address);

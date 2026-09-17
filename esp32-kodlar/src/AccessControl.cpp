@@ -258,8 +258,9 @@ void AccessControl::migratePlaintextPins() {
         changed = true;
     }
 
+    // Deprecated fonksiyon hatasini gidermek icin isNull() kullanimi
     for (JsonObject entry : doc.as<JsonArray>()) {
-        if (entry.containsKey("kartUid") || entry.containsKey("kart_uid")) {
+        if (!entry["kartUid"].isNull() || !entry["kart_uid"].isNull()) {
             entry.remove("kartUid");
             entry.remove("kart_uid");
             changed = true;

@@ -31,26 +31,18 @@ OtaUpdater otaUpdater(mqttManager);
 LockController lock(RELAY_PIN);
 NetworkManager network;
 AccessControl accessControl;
-// Kullandigimiz buzzer modulu LOW seviyesinde ses verir.
+
 AlertSystem alertSystem(
     BUZZER_PIN,
-    LED_GREEN_PIN,
+    LED_PIN, // 26 Pin config'den alinir
     false,
-    false,
-    LED_BLUE_PIN,
-    false,
-    LED_RED_PIN,
-    false,
-    PCF8574_LED_ADDRESS
+    true
 );
+
 LcdDisplay lcdDisplay(I2C_SDA_PIN, I2C_SCL_PIN);
 RtcManager rtcManager(I2C_SDA_PIN, I2C_SCL_PIN);
 KeypadInput keypadInput(
-    rowPins,
-    colPins,
-    KEYPAD_MIN_LEN,
-    KEYPAD_MAX_LEN,
-    KEYPAD_TIMEOUT
+    rowPins, colPins, KEYPAD_MIN_LEN, KEYPAD_MAX_LEN, KEYPAD_TIMEOUT
 );
 
 struct PendingAccessRequest {
@@ -65,8 +57,6 @@ static PendingAccessRequest pendingAccess;
 static constexpr uint32_t ACCESS_RESPONSE_TIMEOUT_MS = 6000;
 static uint32_t lastHeartbeatMs = 0;
 static bool doorSensorInitialized = false;
-// Harici pull-up baglantisinda sensor kapali kontakta GPIO35'i GND'ye
-// ceker: LOW = kapi KAPALI, HIGH = kapi ACIK.
 static constexpr uint8_t DOOR_SENSOR_CLOSED_LEVEL = LOW;
 static bool lastDoorPhysicallyOpen = false;
 static bool pendingDoorSensorState = false;
@@ -80,10 +70,7 @@ static bool lastAccessFailureWasConnection = false;
 static bool rtcSyncedFromNtp = false;
 
 enum class ConnectivityLcdState : uint8_t {
-    UNKNOWN,
-    ETHERNET_DOWN,
-    MQTT_WAITING,
-    ONLINE
+    UNKNOWN, ETHERNET_DOWN, MQTT_WAITING, ONLINE
 };
 
 static ConnectivityLcdState connectivityLcdState = ConnectivityLcdState::UNKNOWN;
@@ -92,10 +79,6 @@ static bool onlineAnnouncementActive = false;
 static uint32_t connectivityMessageAtMs = 0;
 static constexpr uint32_t ONLINE_LCD_MESSAGE_MS = 3000;
 
-// NTP zaman senkronize olduysa sistem saatini (mevcut davranis), degilse
-// -mumkunse- pilli RTC'den okunan zamani kullanir. RTC de yoksa yine
-// sistem saatine (time(nullptr)) duser; boylece davranis eskisiyle ayni
-// kalir, sadece RTC varsa WiFi/NTP kesintilerinde dogruluk kaybolmaz.
 static time_t currentEpoch() {
     if (network.isTimeSet()) return time(nullptr);
     if (rtcManager.isAvailable() && !rtcManager.lostPower()) {
@@ -104,71 +87,46 @@ static time_t currentEpoch() {
     return time(nullptr);
 }
 
-// CardReader'in terminale "Saat" satirinda hangi kaynagi kullandigini
-// yazdirabilmesi icin: su an RTC'den mi okunuyor?
 static bool isTimeFromRtc() {
     return !network.isTimeSet() && rtcManager.isAvailable() && !rtcManager.lostPower();
 }
 
-// NTP ilk kez basariyla senkron olduginda RTC'yi bir defaya mahsus günceller,
-// böylece pil sayesinde bir sonraki WiFi/NTP kesintisinde zaman korunur.
 static void syncRtcFromNtpIfNeeded() {
     if (rtcSyncedFromNtp || !network.isTimeSet() || !rtcManager.isAvailable()) return;
-
     rtcManager.syncFromEpoch(time(nullptr));
     rtcSyncedFromNtp = true;
 }
 
 static std::string createEventId() {
-    uint32_t a = esp_random();
-    uint32_t b = esp_random();
-    uint32_t c = esp_random();
-    uint32_t d = esp_random();
+    uint32_t a = esp_random(); uint32_t b = esp_random();
+    uint32_t c = esp_random(); uint32_t d = esp_random();
     char buffer[37];
-    snprintf(
-        buffer,
-        sizeof(buffer),
-        "%08lx-%04lx-4%03lx-%04lx-%08lx%04lx",
-        (unsigned long)a,
-        (unsigned long)(b & 0xffff),
-        (unsigned long)((b >> 16) & 0x0fff),
-        (unsigned long)(0x8000 | (c & 0x3fff)),
-        (unsigned long)d,
-        (unsigned long)((c >> 16) & 0xffff)
-    );
+    snprintf(buffer, sizeof(buffer), "%08lx-%04lx-4%03lx-%04lx-%08lx%04lx",
+             (unsigned long)a, (unsigned long)(b & 0xffff),
+             (unsigned long)((b >> 16) & 0x0fff),
+             (unsigned long)(0x8000 | (c & 0x3fff)),
+             (unsigned long)d, (unsigned long)((c >> 16) & 0xffff));
     return std::string(buffer);
 }
 
 static void publishOrQueue(EntryEvent &event, const String &queueValue) {
     if (mqttManager.publishEntryEvent(event)) return;
-
-    OfflineQueue::olayEkle(
-        queueValue.c_str(),
-        event.dogrulamaYontemi.c_str(),
-        event.sonuc == "izin",
-        event.timestampEpoch
-    );
+    OfflineQueue::olayEkle(queueValue.c_str(), event.dogrulamaYontemi.c_str(), event.sonuc == "izin", event.timestampEpoch);
 }
 
 static void applyAccessDecision(bool allowed, const std::string &reason = "") {
     lastAccessFailureWasConnection = false;
-
     if (allowed) {
         Serial.println("[AUTH] MQTT sunucu karari: ONAYLANDI.");
         DoorState::durumGecisiYap(Durum::ONAYLANDI);
         alertSystem.playSuccess();
-
         if (doorSensorInitialized && lastDoorPhysicallyOpen) {
             Serial.println("[KILIT] Kapi zaten ACIK; role tetiklenmedi.");
         } else if (!lock.unlockDoor()) {
             Serial.println("[KILIT] Role darbesi devam ettigi icin yeni tetikleme atlandi.");
         }
     } else {
-        Serial.printf(
-            "[AUTH] MQTT sunucu karari: REDDEDILDI%s%s.\n",
-            reason.empty() ? "" : " - ",
-            reason.c_str()
-        );
+        Serial.printf("[AUTH] MQTT sunucu karari: REDDEDILDI%s%s.\n", reason.empty() ? "" : " - ", reason.c_str());
         DoorState::durumGecisiYap(Durum::REDDEDILDI);
         alertSystem.playAccessDenied();
     }
@@ -176,24 +134,14 @@ static void applyAccessDecision(bool allowed, const std::string &reason = "") {
 
 static void applyConnectionUnavailable() {
     lastAccessFailureWasConnection = true;
-    Serial.println(
-        "[AUTH] DOGRU/YANLIS karari verilemedi: MQTT baglantisi yok. "
-        "Kapi guvenlik geregi KAPALI kaldi."
-    );
+    Serial.println("[AUTH] DOGRU/YANLIS karari verilemedi: MQTT baglantisi yok. Kapi KAPALI kaldi.");
     DoorState::durumGecisiYap(Durum::REDDEDILDI);
     lcdDisplay.showConnectionUnavailable();
 }
 
 static void processCredential(const String &credential, bool isCard) {
-    if (DoorState::mevcutDurumuAl() != Durum::BEKLEMEDE) {
-        Serial.println("[AUTH] Kapi islemi devam ediyor; yeni kart/PIN okumasi atlandi.");
-        return;
-    }
-
-    if (pendingAccess.active) {
-        Serial.println("[AUTH] Onceki MQTT dogrulama cevabi bekleniyor; yeni okuma atlandi.");
-        return;
-    }
+    if (DoorState::mevcutDurumuAl() != Durum::BEKLEMEDE) return;
+    if (pendingAccess.active) return;
 
     EntryEvent event;
     event.cihazOlayId = createEventId();
@@ -202,11 +150,8 @@ static void processCredential(const String &credential, bool isCard) {
     event.dogrulamaYontemi = isCard ? "kart" : "pin";
     event.timestampEpoch = currentEpoch();
 
-    if (isCard) {
-        event.okunanUid = std::string(credential.c_str());
-    } else {
-        event.pin = std::string(credential.c_str());
-    }
+    if (isCard) event.okunanUid = std::string(credential.c_str());
+    else event.pin = std::string(credential.c_str());
 
     if (mqttManager.publishEntryEvent(event)) {
         pendingAccess.active = true;
@@ -215,84 +160,40 @@ static void processCredential(const String &credential, bool isCard) {
         pendingAccess.isCard = isCard;
         pendingAccess.sentAtMs = millis();
         DoorState::durumGecisiYap(Durum::OKUNUYOR);
-        Serial.printf(
-            "[AUTH] %s dogrulama istegi MQTT ile gonderildi. Cevap bekleniyor...\n",
-            isCard ? "Kart" : "PIN"
-        );
+        Serial.printf("[AUTH] %s dogrulama istegi MQTT ile gonderildi.\n", isCard ? "Kart" : "PIN");
         return;
     }
 
-    Serial.println("[AUTH] MQTT baglantisi yok; yerel offline kontrol uygulanacak.");
     const bool allowed = accessControl.verifyOfflineAccess(credential, isCard);
     event.sonuc = allowed ? "izin" : "red";
-
     event.kullaniciId = std::string(accessControl.getLastOfflineUserId().c_str());
-    if (!allowed) {
-        event.redNedeni = isCard ? "mqtt_yok_kart_dogrulanamadi" : "gecersiz_pin";
-    }
+    if (!allowed) event.redNedeni = isCard ? "mqtt_yok_kart_dogrulanamadi" : "gecersiz_pin";
 
-    if (allowed) {
-        applyAccessDecision(true);
-    } else {
-        applyAccessDecision(false, "cevrimdisi_yetki_bulunamadi");
-    }
-    const String queueValue = isCard ? credential : accessControl.getLastOfflineUserId();
-    publishOrQueue(event, queueValue);
+    if (allowed) applyAccessDecision(true);
+    else applyAccessDecision(false, "cevrimdisi_yetki_bulunamadi");
+    publishOrQueue(event, isCard ? credential : accessControl.getLastOfflineUserId());
 }
 
 static void processPendingCommands() {
     while (mqttManager.hasPendingCommand()) {
         DeviceCommand command = mqttManager.popPendingCommand();
-
         if (command.type == CommandType::DOOR_OPEN) {
-            const bool opened =
-                (!doorSensorInitialized || !lastDoorPhysicallyOpen)
-                && lock.unlockDoor();
-            Serial.println(opened
-                ? "[KAPI] Uzaktan acma komutu uygulandi."
-                : "[KAPI] Uzaktan acma atlandi; kapi acik veya role zaten tetiklenmis.");
+            const bool opened = (!doorSensorInitialized || !lastDoorPhysicallyOpen) && lock.unlockDoor();
             mqttManager.publishPasswordAck(opened);
         } else if (command.type == CommandType::PASSWORD_RENEW) {
-            accessControl.syncOfflinePins(
-                String(command.newPasswordListJson.c_str()),
-                command.replacePasswordList
-            );
+            accessControl.syncOfflinePins(String(command.newPasswordListJson.c_str()), command.replacePasswordList);
             mqttManager.publishPasswordAck(true);
         } else if (command.type == CommandType::FIRMWARE_UPDATE) {
-            const bool safeToUpdate =
-                DoorState::mevcutDurumuAl() == Durum::BEKLEMEDE
-                && !pendingAccess.active
-                && doorSensorInitialized
-                && !lastDoorPhysicallyOpen
-                && !doorOpenAlarmActive;
-
+            const bool safeToUpdate = DoorState::mevcutDurumuAl() == Durum::BEKLEMEDE && !pendingAccess.active && doorSensorInitialized && !lastDoorPhysicallyOpen && !doorOpenAlarmActive;
             if (!safeToUpdate) {
-                Serial.println("[OTA] Sistem/kapı güvenli durumda değil; güncelleme reddedildi.");
-                mqttManager.publishOtaStatus(
-                    "HATA",
-                    "Kapi kapali ve sistem beklemede olmali",
-                    command.firmwareVersion
-                );
+                mqttManager.publishOtaStatus("HATA", "Kapi kapali ve sistem beklemede olmali", command.firmwareVersion);
                 continue;
             }
-
             otaUpdater.performUpdate(command);
         } else if (command.type == CommandType::ACCESS_RESPONSE) {
-            if (!pendingAccess.active || command.requestId != pendingAccess.requestId) {
-                Serial.println("[AUTH] Eslesmeyen veya gecikmis MQTT erisim cevabi atlandi.");
-                continue;
-            }
-
-            if (
-                command.accessAllowed
-                && !pendingAccess.isCard
-                && !command.accessUserId.empty()
-            ) {
-                accessControl.rememberOfflineAccess(
-                    String(pendingAccess.credential.c_str()),
-                    pendingAccess.isCard,
-                    String(command.accessUserId.c_str())
-                );
+            if (!pendingAccess.active || command.requestId != pendingAccess.requestId) continue;
+            if (command.accessAllowed && !pendingAccess.isCard && !command.accessUserId.empty()) {
+                accessControl.rememberOfflineAccess(String(pendingAccess.credential.c_str()), pendingAccess.isCard, String(command.accessUserId.c_str()));
             }
             applyAccessDecision(command.accessAllowed, command.accessReason);
             pendingAccess = PendingAccessRequest{};
@@ -301,11 +202,7 @@ static void processPendingCommands() {
 }
 
 static void checkAccessResponseTimeout() {
-    if (
-        pendingAccess.active
-        && millis() - pendingAccess.sentAtMs >= ACCESS_RESPONSE_TIMEOUT_MS
-    ) {
-        Serial.println("[AUTH] MQTT erisim cevabi zaman asimina ugradi; kapi KAPALI kaldi.");
+    if (pendingAccess.active && millis() - pendingAccess.sentAtMs >= ACCESS_RESPONSE_TIMEOUT_MS) {
         applyConnectionUnavailable();
         pendingAccess = PendingAccessRequest{};
     }
@@ -313,7 +210,6 @@ static void checkAccessResponseTimeout() {
 
 static void replayOneOfflineEvent() {
     if (!mqttManager.isConnected() || OfflineQueue::bekleyenOlaySayisi() == 0) return;
-
     CevrimdisiOlay queued;
     if (!OfflineQueue::okumayiBaslat()) return;
     const bool read = OfflineQueue::siradakiOlayiOku(queued);
@@ -340,61 +236,32 @@ static void updatePhysicalDoorState() {
 
     if (!doorSensorInitialized) {
         doorSensorInitialized = true;
-        lastDoorPhysicallyOpen = rawDoorOpen;
-        pendingDoorSensorState = rawDoorOpen;
+        lastDoorPhysicallyOpen = pendingDoorSensorState = rawDoorOpen;
         doorSensorChangedAtMs = now;
         doorOpenedAtMs = rawDoorOpen ? now : 0;
-        Serial.printf(
-            "[KAPI] Baslangic fiziksel durumu: %s "
-            "(GPIO%d=%d, LOW=KAPALI / HIGH=ACIK).\n",
-            lastDoorPhysicallyOpen ? "ACIK" : "KAPALI",
-            SENSOR_PIN,
-            sensorLevel
-        );
         mqttManager.publishDoorStatus(lastDoorPhysicallyOpen);
-        if (DoorState::mevcutDurumuAl() == Durum::BEKLEMEDE) {
-            lcdDisplay.showIdle(lastDoorPhysicallyOpen);
-        }
+        if (DoorState::mevcutDurumuAl() == Durum::BEKLEMEDE) lcdDisplay.showIdle(lastDoorPhysicallyOpen);
         return;
     }
 
     if (rawDoorOpen != pendingDoorSensorState) {
         pendingDoorSensorState = rawDoorOpen;
         doorSensorChangedAtMs = now;
-    } else if (
-        pendingDoorSensorState != lastDoorPhysicallyOpen
-        && now - doorSensorChangedAtMs >= DOOR_SENSOR_DEBOUNCE_MS
-    ) {
+    } else if (pendingDoorSensorState != lastDoorPhysicallyOpen && now - doorSensorChangedAtMs >= DOOR_SENSOR_DEBOUNCE_MS) {
         lastDoorPhysicallyOpen = pendingDoorSensorState;
         doorOpenedAtMs = lastDoorPhysicallyOpen ? now : 0;
-        Serial.printf(
-            "[KAPI] Fiziksel durum: %s (GPIO%d=%d)\n",
-            lastDoorPhysicallyOpen ? "ACIK" : "KAPALI",
-            SENSOR_PIN,
-            sensorLevel
-        );
         mqttManager.publishDoorStatus(lastDoorPhysicallyOpen);
-        if (DoorState::mevcutDurumuAl() == Durum::BEKLEMEDE) {
-            lcdDisplay.showIdle(lastDoorPhysicallyOpen);
-        }
+        if (DoorState::mevcutDurumuAl() == Durum::BEKLEMEDE) lcdDisplay.showIdle(lastDoorPhysicallyOpen);
     }
 }
 
 static void updateDoorOpenAlarm() {
     if (!doorSensorInitialized) return;
 
-    if (
-        lastDoorPhysicallyOpen
-        && !doorOpenAlarmActive
-        && millis() - doorOpenedAtMs >= DOOR_OPEN_ALARM_DELAY_MS
-    ) {
+    if (lastDoorPhysicallyOpen && !doorOpenAlarmActive && millis() - doorOpenedAtMs >= DOOR_OPEN_ALARM_DELAY_MS) {
         doorOpenAlarmActive = true;
         alertSystem.playDoorOpenTooLong();
         lcdDisplay.showAlarm();
-        Serial.println(
-            "[ALARM] Kapi 20 saniyeden uzun suredir ACIK: "
-            "buzzer surekli, mavi LED aktif."
-        );
         return;
     }
 
@@ -402,7 +269,6 @@ static void updateDoorOpenAlarm() {
         doorOpenAlarmActive = false;
         alertSystem.stop(AlertPattern::DoorOpenTooLong);
         lcdDisplay.showIdle(false);
-        Serial.println("[ALARM] Kapi KAPANDI: buzzer ve mavi LED kapatildi.");
     }
 }
 
@@ -414,19 +280,10 @@ static ConnectivityLcdState currentConnectivityState() {
 
 static void showCurrentConnectivityMessage() {
     switch (connectivityLcdState) {
-        case ConnectivityLcdState::ETHERNET_DOWN:
-            lcdDisplay.showEthernetDisconnected();
-            break;
-        case ConnectivityLcdState::MQTT_WAITING:
-            if (mqttWasConnected) lcdDisplay.showMqttDisconnected();
-            else lcdDisplay.showMqttWaiting();
-            break;
-        case ConnectivityLcdState::ONLINE:
-            lcdDisplay.showMqttConnected();
-            break;
-        case ConnectivityLcdState::UNKNOWN:
-            lcdDisplay.showEthernetConnecting();
-            break;
+        case ConnectivityLcdState::ETHERNET_DOWN: lcdDisplay.showEthernetDisconnected(); break;
+        case ConnectivityLcdState::MQTT_WAITING: if (mqttWasConnected) lcdDisplay.showMqttDisconnected(); else lcdDisplay.showMqttWaiting(); break;
+        case ConnectivityLcdState::ONLINE: lcdDisplay.showMqttConnected(); break;
+        case ConnectivityLcdState::UNKNOWN: lcdDisplay.showEthernetConnecting(); break;
     }
 }
 
@@ -438,26 +295,13 @@ static void updateConnectivityLcdStatus() {
         onlineAnnouncementActive = nextState == ConnectivityLcdState::ONLINE;
         if (nextState == ConnectivityLcdState::ONLINE) mqttWasConnected = true;
 
-        Serial.printf(
-            "[LCD/AG] Durum: %s\n",
-            nextState == ConnectivityLcdState::ONLINE
-                ? "ETHERNET+MQTT BAGLI"
-                : (nextState == ConnectivityLcdState::MQTT_WAITING
-                    ? "ETHERNET BAGLI, MQTT YOK"
-                    : "ETHERNET YOK")
-        );
-
         if (DoorState::mevcutDurumuAl() == Durum::BEKLEMEDE && !doorOpenAlarmActive) {
             showCurrentConnectivityMessage();
         }
     }
 
-    if (
-        onlineAnnouncementActive
-        && millis() - connectivityMessageAtMs >= ONLINE_LCD_MESSAGE_MS
-    ) {
+    if (onlineAnnouncementActive && millis() - connectivityMessageAtMs >= ONLINE_LCD_MESSAGE_MS) {
         onlineAnnouncementActive = false;
-        // MQTT BAGLANDI mesaji bittikten sonra bekleme ekranini zorla yenile.
         lastLcdWorkflowState = Durum::ALARM;
     }
 }
@@ -470,13 +314,8 @@ static void updateLcdWorkflowState() {
 
     const Durum currentState = DoorState::mevcutDurumuAl();
 
-    // Normal bekleme durumunda ag hatasi kalici olarak gorunsun. Kart/PIN,
-    // onay/red ve alarm ekranlari bu mesaja gore her zaman onceliklidir.
     if (currentState == Durum::BEKLEMEDE) {
-        if (
-            connectivityLcdState == ConnectivityLcdState::ETHERNET_DOWN
-            || connectivityLcdState == ConnectivityLcdState::MQTT_WAITING
-        ) {
+        if (connectivityLcdState == ConnectivityLcdState::ETHERNET_DOWN || connectivityLcdState == ConnectivityLcdState::MQTT_WAITING) {
             showCurrentConnectivityMessage();
             return;
         }
@@ -490,22 +329,13 @@ static void updateLcdWorkflowState() {
             lastAccessFailureWasConnection = false;
             lcdDisplay.showIdle(lastDoorPhysicallyOpen);
             break;
-        case Durum::OKUNUYOR:
-            lcdDisplay.showChecking();
-            break;
-        case Durum::ONAYLANDI:
-            lcdDisplay.showApproved();
-            break;
+        case Durum::OKUNUYOR: lcdDisplay.showChecking(); break;
+        case Durum::ONAYLANDI: lcdDisplay.showApproved(); break;
         case Durum::REDDEDILDI:
-            if (lastAccessFailureWasConnection) {
-                lcdDisplay.showConnectionUnavailable();
-            } else {
-                lcdDisplay.showDenied();
-            }
+            if (lastAccessFailureWasConnection) lcdDisplay.showConnectionUnavailable();
+            else lcdDisplay.showDenied();
             break;
-        case Durum::ALARM:
-            lcdDisplay.showAlarm();
-            break;
+        case Durum::ALARM: lcdDisplay.showAlarm(); break;
     }
 
     lastLcdWorkflowState = currentState;
@@ -515,34 +345,31 @@ void setup() {
     Serial.begin(115200);
     Serial.println("[SYSTEM] SecureDoor baslatiliyor...");
 
-    // W5500 ve MFRC522 ayni VSPI hattini paylasir. Her iki CS hattini da
-    // pasif yapip SPI'yi yalnizca bir kez baslatmak cihazlarin birbirini
-    // secmesini ve Ethernet baglantisinin RFID kurtarmasinda bozulmasini onler.
+    // SPI ve CS pinleri hazirlaniyor
     pinMode(RFID_SS_PIN, OUTPUT);
     digitalWrite(RFID_SS_PIN, HIGH);
     pinMode(ETHERNET_CS_PIN, OUTPUT);
     digitalWrite(ETHERNET_CS_PIN, HIGH);
-    SPI.begin(RFID_SCK_PIN, RFID_MISO_PIN, RFID_MOSI_PIN);
+    
+    // ONEMLI: 4. parametre olan -1, ESP32'nin donanimsal olarak CS pinini ele gecirmesini engeller!
+    SPI.begin(RFID_SCK_PIN, RFID_MISO_PIN, RFID_MOSI_PIN, -1);
 
     pinMode(SENSOR_PIN, INPUT);
+
     lcdDisplay.begin();
     lcdDisplay.showBoot();
     rtcManager.begin();
+    
     if (rtcManager.isAvailable() && !rtcManager.lostPower()) {
         const time_t rtcEpoch = rtcManager.getEpoch();
         if (rtcEpoch > 1700000000) {
             timeval systemTime = { rtcEpoch, 0 };
             settimeofday(&systemTime, nullptr);
-            Serial.println("[RTC] Sistem saati Wi-Fi/EAP oncesinde RTC'den ayarlandi.");
         }
     }
-    CardReader::setZamanKaynagi(&currentEpoch, &isTimeFromRtc);
-    lock.begin();
-    alertSystem.begin();
-    cardReader.begin();
-    keypadInput.begin();
-    accessControl.begin();
-    OfflineQueue::baslat();
+
+    // ONEMLI DEGISIKLIK: Ethernet (W5500) okuyucudan ONCE baslatilir!
+    // Amac, cipin uyandirilarak MISO hattini serbest (tri-state) birakmasini saglamaktir.
     lcdDisplay.showEthernetConnecting();
     network.begin();
     if (network.isConnected()) {
@@ -551,13 +378,18 @@ void setup() {
         lcdDisplay.showEthernetDisconnected();
     }
 
+    // Ethernet MISO hattini birakti, artik RFID okuyucu sorunsuz baslayabilir
+    CardReader::setZamanKaynagi(&currentEpoch, &isTimeFromRtc);
+    cardReader.begin();
+    
+    lock.begin();
+    alertSystem.begin();
+    keypadInput.begin();
+    accessControl.begin();
+    OfflineQueue::baslat();
+
     DoorState::durumGecisiYap(Durum::BEKLEMEDE);
-    Serial.println(
-        "[DoorState] BEKLEMEDE = kart/PIN bekleniyor; "
-        "fiziksel kapi durumu ayri olarak KAPALI/ACIK yazilir."
-    );
     alertSystem.playSuccess();
-    Serial.println("[BUZZER] Acilis icin bir kisa test sesi verildi.");
     Serial.println("[SYSTEM] Hazir.");
 }
 

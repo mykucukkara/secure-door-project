@@ -1,7 +1,5 @@
 #include "AlertSystem.h"
 
-#include <Wire.h>
-
 static constexpr uint8_t BUZZER_PWM_CHANNEL = 7;
 static constexpr uint8_t BUZZER_PWM_RESOLUTION = 10;
 static constexpr uint32_t BUZZER_PWM_MAX_DUTY =
@@ -12,20 +10,12 @@ const AlertSystem::AlertStep AlertSystem::KEYPRESS_STEPS[] = {
     {false, false, 1}
 };
 
-/*
- * Başarılı giriş:
- * Bir kısa bip ve kısa LED gösterimi.
- */
 const AlertSystem::AlertStep AlertSystem::SUCCESS_STEPS[] = {
     {true,  true,  250},
     {false, true,  450},
     {false, false, 1}
 };
 
-/*
- * Hata veya yanlış PIN:
- * İki kısa bip.
- */
 const AlertSystem::AlertStep AlertSystem::ERROR_STEPS[] = {
     {true,  true,  180},
     {false, false, 120},
@@ -33,10 +23,6 @@ const AlertSystem::AlertStep AlertSystem::ERROR_STEPS[] = {
     {false, false, 1}
 };
 
-/*
- * Erişim reddedildi:
- * Daha belirgin üçlü uyarı.
- */
 const AlertSystem::AlertStep AlertSystem::ACCESS_DENIED_STEPS[] = {
     {true,  true,  220},
     {false, false, 120},
@@ -46,40 +32,24 @@ const AlertSystem::AlertStep AlertSystem::ACCESS_DENIED_STEPS[] = {
     {false, false, 1}
 };
 
-/*
- * Kullanıcı geçici olarak kilitlendi:
- * Beş kısa bip, ardından bekleme.
- */
 const AlertSystem::AlertStep AlertSystem::LOCKOUT_STEPS[] = {
     {true,  true,  100},
     {false, false, 100},
-
     {true,  true,  100},
     {false, false, 100},
-
     {true,  true,  100},
     {false, false, 100},
-
     {true,  true,  100},
     {false, false, 100},
-
     {true,  true,  100},
     {false, false, 700}
 };
 
-/*
- * Kapı uzun süre açık:
- * Her iki saniyede bir kısa bip.
- */
 const AlertSystem::AlertStep AlertSystem::DOOR_OPEN_STEPS[] = {
     {true, true,  400},
     {true, false, 400}
 };
 
-/*
- * Zorla giriş:
- * Hızlı ve sürekli alarm.
- */
 const AlertSystem::AlertStep AlertSystem::FORCED_ENTRY_STEPS[] = {
     {true,  true,  250},
     {false, false, 100},
@@ -87,20 +57,11 @@ const AlertSystem::AlertStep AlertSystem::FORCED_ENTRY_STEPS[] = {
     {false, true,  100}
 };
 
-/*
- * İnternet bağlantısı yok:
- * Buzzer sürekli çalmaz.
- * LED yavaş şekilde yanıp söner.
- */
 const AlertSystem::AlertStep AlertSystem::OFFLINE_STEPS[] = {
     {false, true,  300},
     {false, false, 1700}
 };
 
-/*
- * Genel cihaz hatası:
- * Uzun ve belirgin hata uyarısı.
- */
 const AlertSystem::AlertStep AlertSystem::DEVICE_ERROR_STEPS[] = {
     {true,  true,  400},
     {false, false, 200},
@@ -112,24 +73,12 @@ AlertSystem::AlertSystem(
     uint8_t buzzerPin,
     uint8_t ledPin,
     bool buzzerActiveHigh,
-    bool ledActiveHigh,
-    uint8_t blueLedPin,
-    bool blueLedActiveHigh,
-    uint8_t redLedPin,
-    bool redLedActiveHigh,
-    uint8_t ledExpanderAddress
+    bool ledActiveHigh
 )
     : _buzzerPin(buzzerPin),
       _ledPin(ledPin),
-      _blueLedPin(blueLedPin),
-      _redLedPin(redLedPin),
       _buzzerActiveHigh(buzzerActiveHigh),
       _ledActiveHigh(ledActiveHigh),
-      _blueLedActiveHigh(blueLedActiveHigh),
-      _redLedActiveHigh(redLedActiveHigh),
-      _ledExpanderAddress(ledExpanderAddress),
-      _ledExpanderState(0xFF),
-      _lastLedExpanderErrorAtMs(0),
       _activePattern(AlertPattern::None),
       _activeSteps(nullptr),
       _activeStepCount(0),
@@ -141,27 +90,7 @@ AlertSystem::AlertSystem(
 
 void AlertSystem::begin() {
     pinMode(_buzzerPin, OUTPUT);
-
-    if (_ledExpanderAddress == 0) {
-        pinMode(_ledPin, OUTPUT);
-        if (_blueLedPin != 255) {
-            pinMode(_blueLedPin, OUTPUT);
-        }
-        if (_redLedPin != 255) {
-            pinMode(_redLedPin, OUTPUT);
-        }
-    } else {
-        // PCF8574 guc acilisinda tum uclari HIGH birakir. Ortak arti RGB
-        // LED icin HIGH=sonuk oldugundan once tum renkleri guvenle kapat.
-        _ledExpanderState = 0xFF;
-        const bool ledExpanderReady = writeLedExpanderState();
-        Serial.printf(
-            ledExpanderReady
-                ? "[RGB LED] PCF8574T hazir (adres=0x%02X, P0/P3/P5).\n"
-                : "[RGB LED] PCF8574T bulunamadi (adres=0x%02X). I2C ve adres anahtarlarini kontrol edin.\n",
-            _ledExpanderAddress
-        );
-    }
+    pinMode(_ledPin, OUTPUT);
 
     ledcSetup(BUZZER_PWM_CHANNEL, 2000, BUZZER_PWM_RESOLUTION);
     ledcAttachPin(_buzzerPin, BUZZER_PWM_CHANNEL);
@@ -169,9 +98,8 @@ void AlertSystem::begin() {
         BUZZER_PWM_CHANNEL,
         _buzzerActiveHigh ? 0 : BUZZER_PWM_MAX_DUTY
     );
+    
     setLed(false);
-    setBlueLed(false);
-    setRedLed(false);
 
     _activePattern = AlertPattern::None;
     _activeSteps = nullptr;
@@ -230,18 +158,10 @@ bool AlertSystem::play(AlertPattern pattern) {
         return false;
     }
 
-    /*
-     * Aynı alarm zaten çalışıyorsa baştan başlatılmaz.
-     * Özellikle loop içerisinde tekrar tekrar playOffline()
-     * çağrılması desenin sürekli sıfırlanmasını engeller.
-     */
     if (_activePattern == pattern) {
         return true;
     }
 
-    /*
-     * Düşük öncelikli olay yüksek öncelikli alarmı kesemez.
-     */
     if (
         isActive() &&
         getPriority(pattern) < getPriority(_activePattern)
@@ -307,9 +227,7 @@ void AlertSystem::setPinEntryActive(bool active) {
     _pinEntryActive = active;
     if (!_started || isActive()) return;
 
-    setLed(false);
-    setRedLed(false);
-    setBlueLed(active);
+    setLed(active);
 }
 
 void AlertSystem::stop() {
@@ -331,19 +249,11 @@ AlertPattern AlertSystem::getActivePattern() const {
 }
 
 void AlertSystem::setLed(bool enabled) {
-    writeLedOutput(
-        _ledPin,
-        enabled,
-        _ledActiveHigh
-    );
+    const uint8_t outputLevel = (enabled == _ledActiveHigh) ? HIGH : LOW;
+    digitalWrite(_ledPin, outputLevel);
 }
 
 void AlertSystem::setBuzzer(bool enabled) {
-    /*
-     * Takili buzzer pasif tiptir; yalnizca HIGH/LOW vermek ses uretmez.
-     * tone() ile kare dalga olusturulur. Onay sesi daha ince, red sesi
-     * daha kalin duyulur; desen adimlari bip sayisini belirlemeye devam eder.
-     */
     if (enabled) {
         unsigned int frequency = 2800;
 
@@ -520,13 +430,8 @@ void AlertSystem::startPattern(
     AlertPattern pattern,
     const PatternDefinition& definition
 ) {
-    /*
-     * Önce önceki çıkışları kapat.
-     */
     setBuzzer(false);
     setLed(false);
-    setBlueLed(false);
-    setRedLed(false);
 
     _activePattern = pattern;
     _activeSteps = definition.steps;
@@ -547,41 +452,13 @@ void AlertSystem::applyCurrentStep() {
         return;
     }
 
-    setBuzzer(
-        _activeSteps[_currentStep].buzzerOn
-    );
-
-    if (_activePattern == AlertPattern::DoorOpenTooLong) {
-        setLed(false);
-        setBlueLed(false);
-        setRedLed(_activeSteps[_currentStep].ledOn);
-    } else if (_activePattern == AlertPattern::Keypress) {
-        setLed(false);
-        setRedLed(false);
-        setBlueLed(_activeSteps[_currentStep].ledOn);
-    } else if (
-        _activePattern == AlertPattern::AccessDenied
-        || _activePattern == AlertPattern::InvalidPin
-        || _activePattern == AlertPattern::Error
-        || _activePattern == AlertPattern::Lockout
-        || _activePattern == AlertPattern::ForcedEntry
-        || _activePattern == AlertPattern::DeviceError
-    ) {
-        setLed(false);
-        setBlueLed(false);
-        setRedLed(_activeSteps[_currentStep].ledOn);
-    } else {
-        setBlueLed(false);
-        setRedLed(false);
-        setLed(_activeSteps[_currentStep].ledOn);
-    }
+    setBuzzer(_activeSteps[_currentStep].buzzerOn);
+    setLed(_activeSteps[_currentStep].ledOn);
 }
 
 void AlertSystem::finishPattern() {
     setBuzzer(false);
     setLed(false);
-    setBlueLed(false);
-    setRedLed(false);
 
     _activePattern = AlertPattern::None;
     _activeSteps = nullptr;
@@ -591,71 +468,6 @@ void AlertSystem::finishPattern() {
     _stepStartedAt = 0;
 
     if (_pinEntryActive) {
-        setBlueLed(true);
+        setLed(true);
     }
-}
-
-void AlertSystem::setBlueLed(bool enabled) {
-    if (_blueLedPin == 255) return;
-    writeLedOutput(_blueLedPin, enabled, _blueLedActiveHigh);
-}
-
-void AlertSystem::setRedLed(bool enabled) {
-    if (_redLedPin == 255) return;
-    writeLedOutput(_redLedPin, enabled, _redLedActiveHigh);
-}
-
-void AlertSystem::writeLedOutput(
-    uint8_t pin,
-    bool enabled,
-    bool activeHigh
-) {
-    if (_ledExpanderAddress == 0) {
-        writeOutput(pin, enabled, activeHigh);
-        return;
-    }
-
-    if (pin > 7) return;
-
-    const bool outputHigh = enabled == activeHigh;
-    bitWrite(_ledExpanderState, pin, outputHigh ? 1 : 0);
-    writeLedExpanderState();
-}
-
-bool AlertSystem::writeLedExpanderState() {
-    Wire.beginTransmission(_ledExpanderAddress);
-    Wire.write(_ledExpanderState);
-    const bool success = Wire.endTransmission() == 0;
-
-    if (!success && millis() - _lastLedExpanderErrorAtMs >= 3000) {
-        _lastLedExpanderErrorAtMs = millis();
-        Serial.printf(
-            "[RGB LED] PCF8574T I2C yazma hatasi (adres=0x%02X).\n",
-            _ledExpanderAddress
-        );
-    }
-
-    return success;
-}
-
-void AlertSystem::writeOutput(
-    uint8_t pin,
-    bool enabled,
-    bool activeHigh
-) {
-    /*
-     * activeHigh=true:
-     * enabled=true  -> HIGH
-     * enabled=false -> LOW
-     *
-     * activeHigh=false:
-     * enabled=true  -> LOW
-     * enabled=false -> HIGH
-     */
-    const uint8_t outputLevel =
-        (enabled == activeHigh)
-            ? HIGH
-            : LOW;
-
-    digitalWrite(pin, outputLevel);
 }

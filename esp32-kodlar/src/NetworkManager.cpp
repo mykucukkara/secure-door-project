@@ -15,13 +15,13 @@ constexpr uint32_t NTP_RESPONSE_TIMEOUT_MS = 2000;
 NetworkManager::NetworkManager() = default;
 
 void NetworkManager::buildMacAddress() {
-    const uint64_t chipId = ESP.getEfuseMac();
-    // Yerel yonetilen, unicast MAC. Son 5 bayt ESP32'nin benzersiz eFuse
-    // kimliginden gelir; ayni agdaki iki cihaz ayni MAC'i kullanmaz.
-    _mac[0] = 0x02;
-    for (uint8_t index = 1; index < 6; ++index) {
-        _mac[index] = static_cast<byte>(chipId >> (8 * (index - 1)));
-    }
+    // Agdaki MAC filtrelemesine takilmamasi icin ethernet kartinin MAC adresi sabitlendi.
+    _mac[0] = 0xB6;
+    _mac[1] = 0xBF;
+    _mac[2] = 0xE9;
+    _mac[3] = 0x05;
+    _mac[4] = 0xAD;
+    _mac[5] = 0xA4;
 }
 
 void NetworkManager::resetW5500() {
@@ -35,15 +35,13 @@ void NetworkManager::resetW5500() {
     digitalWrite(ETHERNET_RST_PIN, HIGH);
     delay(250);
 #else
-    // Bu W5500 Lite baglantisinda RST pini kullanilmiyor. Modulu CS ile
-    // pasif birakip kartin guc acilis sifirlamasini kullaniyoruz.
     delay(10);
 #endif
 }
 
 void NetworkManager::configureTimezone() {
     const int offsetMinutes = ZAMAN_DILIMI_DK;
-    const char sign = offsetMinutes >= 0 ? '-' : '+'; // POSIX TZ isareti ters
+    const char sign = offsetMinutes >= 0 ? '-' : '+';
     const int absoluteMinutes = abs(offsetMinutes);
     char timezone[20];
     snprintf(
@@ -68,39 +66,41 @@ void NetworkManager::begin() {
 }
 
 void NetworkManager::startConnection() {
-#if ETHERNET_RST_PIN >= 0
-    Serial.printf(
-        "[Ethernet] W5500 DHCP baslatiliyor (CS=GPIO%d, RST=GPIO%d)...\n",
-        ETHERNET_CS_PIN,
-        ETHERNET_RST_PIN
-    );
-#else
-    Serial.printf(
-        "[Ethernet] W5500 DHCP baslatiliyor (CS=GPIO%d, RST/INT=bagli degil)...\n",
-        ETHERNET_CS_PIN
-    );
-#endif
+    Serial.println("[Ethernet] W5500 modulu uyandiriliyor...");
 
+    // Kütüphaneyi ve çipi uyandırmak için bloke etmeyen sahte IP başlatması
+    IPAddress dummyIp(0, 0, 0, 0);
+    Ethernet.begin(_mac, dummyIp);
+    delay(50); // Çipin SPI hattını serbest bırakması için kısa bekleme
+
+    // 1. Asama: Donanım gerçekten var mı kontrol et
+    if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+        Serial.println("[Ethernet] W5500 bulunamadi; SPI ve CS kablolarini kontrol edin.");
+        _lastConnectionAttemptMs = millis();
+        _ethernetStarted = false;
+        return;
+    }
+
+    // 2. Asama: Ağ kablosu takılı mı kontrol et
+    if (Ethernet.linkStatus() == LinkOFF) {
+        Serial.println("[Ethernet] Kablo takili degil! DHCP atlandi, offline calismaya geciliyor.");
+        _lastConnectionAttemptMs = millis();
+        _ethernetStarted = true;
+        return;
+    }
+
+    // 3. Asama: Her şey sağlamsa DHCP'den IP al
+    Serial.println("[Ethernet] Kablo algilandi. DHCP'den IP bekleniyor (Maks 4 sn)...");
     const int dhcpResult = Ethernet.begin(
         _mac,
-        static_cast<unsigned long>(ETHERNET_DHCP_TIMEOUT_MS),
+        4000UL, // Bloke olmasını engellemek için 4 saniyeye düşürüldü
         2000UL
     );
     _lastConnectionAttemptMs = millis();
     _ethernetStarted = true;
 
-    if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-        Serial.println("[Ethernet] W5500 bulunamadi; SPI, CS ve beslemeyi kontrol edin.");
-        return;
-    }
-
-    if (Ethernet.linkStatus() == LinkOFF) {
-        Serial.println("[Ethernet] Kablo/link yok. RJ45 kablosunu ve switch portunu kontrol edin.");
-        return;
-    }
-
     if (dhcpResult == 0 || !hasValidIp()) {
-        Serial.println("[Ethernet] DHCP'den IP alinamadi; agda DHCP servisini kontrol edin.");
+        Serial.println("[Ethernet] DHCP yanit vermedi. Ag ayarlarini kontrol edin.");
         return;
     }
 
@@ -108,8 +108,6 @@ void NetworkManager::startConnection() {
     Serial.println(Ethernet.localIP());
     Serial.print("[Ethernet] Ag gecidi: ");
     Serial.println(Ethernet.gatewayIP());
-    Serial.print("[Ethernet] DNS: ");
-    Serial.println(Ethernet.dnsServerIP());
     _timeSynced = false;
     _lastNtpAttemptMs = 0;
 }
@@ -128,9 +126,6 @@ bool NetworkManager::isConnected() {
 void NetworkManager::update() {
     const uint32_t now = millis();
 
-    // DHCP ilk kez IP veremediyse lease henuz olusmamistir. Bu durumda
-    // maintain() her loop turunda RENEW_FAIL dondurur ve seri cikisini
-    // doldurur. Yalnizca gecerli bir DHCP lease/IP varken yenileme yap.
     if (_ethernetStarted && isConnected()) {
         const int maintainResult = Ethernet.maintain();
         if (maintainResult == 1 || maintainResult == 3) {
@@ -151,10 +146,9 @@ void NetworkManager::update() {
                 && Ethernet.linkStatus() == LinkOFF
             ) {
                 _lastConnectionAttemptMs = now;
-                Serial.println("[Ethernet] Kablo/link halen yok; DHCP bekletilmedi.");
-                return;
+                return; // Kablo takılı değilse arka planda sessizce bekler
             }
-            Serial.println("[Ethernet] Baglanti yok; W5500 yeniden baslatiliyor...");
+            Serial.println("[Ethernet] Baglanti koptu; W5500 yeniden baslatiliyor...");
             resetW5500();
             Ethernet.init(ETHERNET_CS_PIN);
             startConnection();
@@ -182,13 +176,8 @@ void NetworkManager::startNtpRequest() {
     _lastNtpAttemptMs = millis();
 
     _ntpUdp.stop();
-    if (_ntpUdp.begin(NTP_LOCAL_PORT) == 0) {
-        Serial.println("[NTP] Ethernet UDP soketi acilamadi.");
-        return;
-    }
-
+    if (_ntpUdp.begin(NTP_LOCAL_PORT) == 0) return;
     if (_ntpUdp.beginPacket(NTP_SUNUCU_1, NTP_SERVER_PORT) == 0) {
-        Serial.println("[NTP] Sunucu adresi DNS ile cozumlenemedi.");
         _ntpUdp.stop();
         return;
     }
