@@ -37,6 +37,10 @@ function validateRuntimeSecurity() {
     || ['123456', 'SecureLab2026!'].includes(process.env.SEED_ADMIN_PASSWORD)) {
     problems.push('SEED_ADMIN_PASSWORD üretimde benzersiz ve güçlü bir değer olmalıdır.');
   }
+  if (!process.env.SEED_HOCA_PASSWORD
+    || ['123456', 'BmLab-2026!'].includes(process.env.SEED_HOCA_PASSWORD)) {
+    problems.push('SEED_HOCA_PASSWORD üretimde benzersiz ve güçlü bir değer olmalıdır.');
+  }
   if (!process.env.CORS_ORIGIN) {
     problems.push('CORS_ORIGIN üretimde açıkça tanımlanmalıdır.');
   }

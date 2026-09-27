@@ -38,7 +38,7 @@
       pasif: ['Pasif', 'danger']
     },
     rol: {
-      hoca: ['Öğretim Üyesi', 'info'],
+      hoca: ['Öğretim Elemanı', 'info'],
       admin: ['Yönetici', 'warning'],
       sistem: ['Sistem', 'neutral']
     },

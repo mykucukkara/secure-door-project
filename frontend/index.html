@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel · SecureLab | SUBÜ Bilgisayar Mühendisliği</title>
-<script>(function(){try{var t=localStorage.getItem('securelab-theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-<link rel="stylesheet" href="assets/css/tokens.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/base.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/layout.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/components.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/subu.css?v=20260924-1">
+<script src="assets/js/theme-init.js?v=20260927-1"></script>
+<link rel="stylesheet" href="assets/css/tokens.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/base.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/layout.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/components.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/subu.css?v=20260927-1">
 <link rel="icon" type="image/png" href="assets/img/subu-logo.png">
 </head>
 <body data-page="dashboard" data-breadcrumb="Genel Bakış">
@@ -95,9 +95,13 @@
                 <span class="quick-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15.5" r="4"></circle><path d="M11 12.5 18.5 5M16.5 7 19 9.5M13.7 9.8l2 2"></path></svg></span>
                 <span><strong>Kapı Şifrem</strong><small>Görüntüle veya değiştir</small></span>
               </a>
-              <a class="quick-link" href="kart-kayit.html" data-role="admin" hidden>
+              <a class="quick-link" href="yetkilendirme.html#kart-tanimla" data-role="admin" hidden>
                 <span class="quick-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path><path d="M7 15h4"></path></svg></span>
-                <span><strong>Kart Kayıt</strong><small>İstasyondan yeni kart tanımla</small></span>
+                <span><strong>Kart Yetkilendir</strong><small>Kart ID gir, sahibini seç</small></span>
+              </a>
+              <a class="quick-link" href="kullanici-ekle.html" data-role="admin" hidden>
+                <span class="quick-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8.5" r="3.5"></circle><path d="M3.5 20a6.5 6.5 0 0 1 13 0"></path><path d="M19 8v6M16 11h6"></path></svg></span>
+                <span><strong>Kullanıcı Ekle</strong><small>Bölüm kadrosundan hesap aç</small></span>
               </a>
               <a class="quick-link" href="yetkilendirme.html" data-role="admin" hidden>
                 <span class="quick-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 9.5-4-1.2-7-5-7-9.5V6l7-3Z"></path><path d="M9.5 12l1.8 1.8L14.7 10"></path></svg></span>
@@ -119,10 +123,10 @@
   </div>
 </div>
 
-<script src="assets/js/api.js?v=20260924-1" defer></script>
-<script src="assets/js/theme.js?v=20260924-1" defer></script>
-<script src="assets/js/nav.js?v=20260924-1" defer></script>
-<script src="assets/js/ui.js?v=20260924-1" defer></script>
-<script src="assets/js/dashboard.js?v=20260924-1" defer></script>
+<script src="assets/js/api.js?v=20260927-1" defer></script>
+<script src="assets/js/theme.js?v=20260927-1" defer></script>
+<script src="assets/js/nav.js?v=20260927-1" defer></script>
+<script src="assets/js/ui.js?v=20260927-1" defer></script>
+<script src="assets/js/dashboard.js?v=20260927-1" defer></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 Yeni kartları sisteme tanımlamak için kullanılan masa üstü okuyucu.
 Bir **ESP32** ve bir **MFRC522 (RC522)** kart okuyucudan oluşur. Okutulan kartın
-UID'sini seri porta düzgün biçimde yazar; web panelindeki **Kart Kayıt** sayfası
+UID'sini seri porta düzgün biçimde yazar; web panelindeki **Kart Yetkilendirme** sayfası
 bu UID'yi otomatik alıp seçilen kullanıcıya atar.
 
 ## Bağlantı
@@ -53,9 +53,9 @@ UID:04:A1:B2:C3
 
 ## Web panelinden kart tanımlama
 
-1. Web panelinde yönetici hesabıyla giriş yapın ve **Kart Kayıt** sayfasını açın.
+1. Web panelinde yönetici hesabıyla giriş yapın ve **Kart Yetkilendirme** sayfasını açın.
 2. **İstasyona Bağlan** düğmesine basıp listeden ESP32'nin COM portunu seçin
-   (Chrome veya Edge gerekir; sayfa `http://localhost:8080` üzerinden açılmalıdır).
+   (Chrome veya Edge gerekir; sayfa `http://localhost` üzerinden açılmalıdır).
 3. Kartı okutun, UID alanı otomatik dolar.
 4. Kullanıcıyı seçip **Kartı Tanımla** düğmesine basın.
 

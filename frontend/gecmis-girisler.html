@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Erişim Geçmişi · SecureLab | SUBÜ Bilgisayar Mühendisliği</title>
-<script>(function(){try{var t=localStorage.getItem('securelab-theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-<link rel="stylesheet" href="assets/css/tokens.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/base.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/layout.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/components.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/subu.css?v=20260924-1">
+<script src="assets/js/theme-init.js?v=20260927-1"></script>
+<link rel="stylesheet" href="assets/css/tokens.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/base.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/layout.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/components.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/subu.css?v=20260927-1">
 <link rel="icon" type="image/png" href="assets/img/subu-logo.png">
 </head>
 <body data-page="gecmis-girisler" data-breadcrumb="Erişim Geçmişi">
@@ -32,15 +32,15 @@
         </div>
 
         <div class="flex flex-wrap gap-md mb-md">
-          <div class="input-group" style="flex: 1 1 240px; min-width: 220px;">
+          <div class="input-group filter-grow">
             <input class="form-control" type="search" id="searchInput" placeholder="Kullanıcı adı, e-posta veya kapı ara…">
           </div>
-          <select class="form-control" id="filterYontem" style="max-width: 180px;">
+          <select class="form-control filter-select" id="filterYontem">
             <option value="">Tüm Yöntemler</option>
             <option value="kart">RFID Kart</option>
             <option value="pin">PIN</option>
           </select>
-          <select class="form-control" id="filterSonuc" style="max-width: 180px;">
+          <select class="form-control filter-select" id="filterSonuc">
             <option value="">Tüm Sonuçlar</option>
             <option value="izin">İzin verildi</option>
             <option value="red">Reddedildi</option>
@@ -59,10 +59,10 @@
   </div>
 </div>
 
-<script src="assets/js/api.js?v=20260924-1" defer></script>
-<script src="assets/js/theme.js?v=20260924-1" defer></script>
-<script src="assets/js/nav.js?v=20260924-1" defer></script>
-<script src="assets/js/ui.js?v=20260924-1" defer></script>
-<script src="assets/js/gecmis-girisler.js?v=20260924-1" defer></script>
+<script src="assets/js/api.js?v=20260927-1" defer></script>
+<script src="assets/js/theme.js?v=20260927-1" defer></script>
+<script src="assets/js/nav.js?v=20260927-1" defer></script>
+<script src="assets/js/ui.js?v=20260927-1" defer></script>
+<script src="assets/js/gecmis-girisler.js?v=20260927-1" defer></script>
 </body>
 </html>

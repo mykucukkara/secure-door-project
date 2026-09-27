@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../config/prisma');
 const cardApprovalService = require('../services/cardApprovalService');
+const { writeAudit } = require('../services/auditService');
 const {
   authenticateToken,
   requireAdmin,
@@ -83,7 +84,16 @@ router.post('/', requireAdmin, async (req, res) => {
 
 router.put('/:id', requireAdmin, async (req, res) => {
   try {
-    const { durum, notlar, sonKullanilmaTarihi } = req.body;
+    const { durum, notlar, sonKullanilmaTarihi } = req.body || {};
+    if (!/^\d{1,18}$/.test(String(req.params.id))) return res.status(400).json({ hata: 'Geçersiz yetki kaydı.' });
+    if (durum !== undefined && !['aktif', 'pasif', 'iptal'].includes(durum)) {
+      return res.status(400).json({ hata: 'Geçersiz durum.' });
+    }
+    if (notlar !== undefined && notlar !== null && String(notlar).length > 500) {
+      return res.status(400).json({ hata: 'Not en fazla 500 karakter olabilir.' });
+    }
+    const before = await prisma.kartYetkilendirme.findUnique({ where: { kartYetkiId: BigInt(req.params.id) } });
+    if (!before) return res.status(404).json({ hata: 'Yetki bulunamadı' });
     const permission = await prisma.kartYetkilendirme.update({
       where: { kartYetkiId: BigInt(req.params.id) },
       data: {
@@ -94,6 +104,14 @@ router.put('/:id', requireAdmin, async (req, res) => {
           : {})
       },
       include: permissionInclude
+    });
+    await writeAudit({
+      actorId: req.user.kullaniciId,
+      action: 'guncelle',
+      tableName: 'kart_yetkilendirme',
+      recordId: permission.kartYetkiId,
+      before: { durum: before.durum },
+      after: { durum: permission.durum }
     });
     return res.json(permission);
   } catch (error) {

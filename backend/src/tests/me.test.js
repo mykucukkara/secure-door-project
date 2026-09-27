@@ -10,16 +10,16 @@ const argon2 = require('argon2');
 describe('/api/auth/me Testi', () => {
   let token = '';
   const testEmail = `test_me_${Date.now()}@example.com`;
-  const testPin = '1234';
+  const testPassword = 'BenimTestim2026';
 
   beforeAll(async () => {
-    const pinHash = await argon2.hash(testPin);
+    const sifreHash = await argon2.hash(testPassword);
     await prisma.kullanici.create({
       data: {
         ad: 'Test',
         soyad: 'Kullanici',
         eposta: testEmail,
-        pinHash: pinHash,
+        sifreHash,
         rol: 'hoca',
         durum: 'aktif'
       }
@@ -28,7 +28,7 @@ describe('/api/auth/me Testi', () => {
     // Bu dosya kendi token'ını kendi üretiyor, başka dosyaya bağımlı değil
     const res = await request(app)
       .post('/api/auth/login')
-      .send({ eposta: testEmail, pin: testPin });
+      .send({ eposta: testEmail, pin: testPassword });
     token = res.body.token;
   });
 

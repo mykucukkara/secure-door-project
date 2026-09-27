@@ -5,120 +5,168 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 const request = require('supertest');
 const app = require('../index');
 const prisma = require('../config/prisma');
-const { getAdminToken } = require('./authTestUtils');
+const { getAdminToken, getTestAdmin, signFor } = require('./authTestUtils');
 
-describe('Admin hesap yönetimi ve kişisel güvenlik', () => {
-  const testEmail = `account_flow_${Date.now()}@example.com`;
+describe('Hesap açma, zorunlu şifre değişimi ve yönetici kuralları', () => {
+  const stamp = Date.now();
+  const testEmail = `account_flow_${stamp}@subu.edu.tr`;
   const newWebPassword = 'YeniGuvenli2026';
   let adminToken = '';
   let userToken = '';
   let createdUser = null;
+  let temporaryPassword = '';
+  let doorPin = '';
 
   beforeAll(async () => {
     adminToken = await getAdminToken();
   });
 
   afterAll(async () => {
-    const user = await prisma.kullanici.findFirst({ where: { eposta: testEmail } });
-    if (user) {
-      await prisma.denetimKaydi.deleteMany({ where: { islemYapan: user.kullaniciId } });
+    const users = await prisma.kullanici.findMany({
+      where: { eposta: { contains: `_${stamp}@` } },
+      select: { kullaniciId: true }
+    });
+    const ids = users.map((u) => u.kullaniciId);
+    if (ids.length) {
+      await prisma.denetimKaydi.deleteMany({ where: { islemYapan: { in: ids } } });
+      await prisma.kullanici.deleteMany({ where: { kullaniciId: { in: ids } } });
     }
-    await prisma.kullanici.deleteMany({ where: { eposta: testEmail } });
   });
 
-  test('sistemde yalnızca bir admin hesabı bulunmalı', async () => {
-    const adminCount = await prisma.kullanici.count({ where: { rol: 'admin' } });
-    expect(adminCount).toBe(1);
-
+  test('yeni hesap yalnızca kurumsal e-posta ile açılabilmeli', async () => {
     const res = await request(app)
       .post('/api/kullanicilar')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ ad: 'İkinci', soyad: 'Admin', eposta: testEmail, rol: 'admin' });
+      .send({ ad: 'Dış', soyad: 'Adres', eposta: `dis_${stamp}@gmail.com` });
     expect(res.statusCode).toBe(400);
   });
 
-  test('admin standart kullanıcı oluşturabilmeli', async () => {
+  test('yeni hesaplar yönetici rolüyle açılamamalı', async () => {
     const res = await request(app)
       .post('/api/kullanicilar')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ ad: 'Hesap', soyad: 'Test', eposta: testEmail });
+      .send({ ad: 'İkinci', soyad: 'Admin', eposta: `admin_${stamp}@subu.edu.tr`, rol: 'admin' });
+    expect(res.statusCode).toBe(400);
+  });
+
+  test('admin hesap açınca geçici şifre üretilmeli; SMTP yoksa bir kez gösterilmeli', async () => {
+    const res = await request(app)
+      .post('/api/kullanicilar')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ unvan: 'Arş. Gör.', ad: 'Hesap', soyad: 'Test', eposta: testEmail.toUpperCase() });
 
     expect(res.statusCode).toBe(201);
-    expect(res.body.rol).toBe('hoca');
-    expect(res.body.initialPassword).toMatch(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/);
-    expect(res.body.initialPin).toMatch(/^\d{6}$/);
-    createdUser = res.body;
+    expect(res.body.kullanici.rol).toBe('hoca');
+    expect(res.body.kullanici.eposta).toBe(testEmail);
+    expect(res.body.kullanici.unvan).toBe('Arş. Gör.');
+    expect(res.body.kullanici.sifreDegistirmeZorunlu).toBe(true);
+    expect(res.body.mailGonderildi).toBe(false);
+    expect(res.body.geciciSifre).toMatch(/^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/);
+    expect(res.body).not.toHaveProperty('initialPin');
+    createdUser = res.body.kullanici;
+    temporaryPassword = res.body.geciciSifre;
 
+    const stored = await prisma.kullanici.findUnique({ where: { kullaniciId: BigInt(createdUser.kullaniciId) } });
+    expect(stored.sifreHash).not.toContain(temporaryPassword);
+    expect(stored.sifreGecerlilikBitis).not.toBeNull();
+  });
+
+  test('aynı e-posta ile ikinci hesap açılamamalı', async () => {
+    const res = await request(app)
+      .post('/api/kullanicilar')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ ad: 'Hesap', soyad: 'Tekrar', eposta: testEmail });
+    expect(res.statusCode).toBe(409);
+  });
+
+  test('geçici şifreyle giriş yapan kullanıcı şifresini değiştirmeden paneli kullanamamalı', async () => {
     const login = await request(app)
       .post('/api/auth/login')
-      .send({ eposta: testEmail, pin: res.body.initialPassword });
+      .send({ eposta: testEmail, pin: temporaryPassword });
     expect(login.statusCode).toBe(200);
+    expect(login.body.user.sifreDegistirmeZorunlu).toBe(true);
     userToken = login.body.token;
+
+    const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${userToken}`);
+    expect(me.statusCode).toBe(200);
+
+    const blocked = await request(app)
+      .get(`/api/kullanicilar/${createdUser.kullaniciId}/kapi-sifresi`)
+      .set('Authorization', `Bearer ${userToken}`);
+    expect(blocked.statusCode).toBe(403);
+    expect(blocked.body.code).toBe('SIFRE_DEGISTIRME_ZORUNLU');
+  });
+
+  test('zayıf ya da kişisel bilgi içeren yeni şifre reddedilmeli', async () => {
+    for (const weak of ['kisa1A', 'tamamikucuk2026', 'Password2026', `Account_flow_${stamp}X`]) {
+      // eslint-disable-next-line no-await-in-loop
+      const res = await request(app)
+        .post('/api/auth/change-password')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ mevcutSifre: temporaryPassword, yeniSifre: weak, yeniSifreTekrar: weak });
+      expect(res.statusCode).toBe(400);
+    }
+  });
+
+  test('şifre değiştirilince kilit kalkmalı ve yeni oturum anahtarı verilmeli', async () => {
+    const res = await request(app)
+      .post('/api/auth/change-password')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ mevcutSifre: temporaryPassword, yeniSifre: newWebPassword, yeniSifreTekrar: newWebPassword });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.token).toBeTruthy();
+    expect(res.body.user.sifreDegistirmeZorunlu).toBe(false);
+
+    const oldSession = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${userToken}`);
+    expect(oldSession.statusCode).toBe(401);
+
+    userToken = res.body.token;
+    const pinRes = await request(app)
+      .get(`/api/kullanicilar/${createdUser.kullaniciId}/kapi-sifresi`)
+      .set('Authorization', `Bearer ${userToken}`);
+    expect(pinRes.statusCode).toBe(200);
+    expect(pinRes.body.pin).toMatch(/^\d{6}$/);
+    expect(pinRes.body.kalici).toBe(true);
+    doorPin = pinRes.body.pin;
+
+    const oldLogin = await request(app).post('/api/auth/login').send({ eposta: testEmail, pin: temporaryPassword });
+    expect(oldLogin.statusCode).toBe(401);
+  });
+
+  test('kapı PIN\'i şifreli saklanmalı', async () => {
+    const stored = await prisma.kapiSifreGecmisi.findFirst({
+      where: { kullaniciId: BigInt(createdUser.kullaniciId) }
+    });
+    expect(stored.pinSifreli).not.toContain(doorPin);
   });
 
   test('standart kullanıcı başka kullanıcı oluşturamamalı', async () => {
     const res = await request(app)
       .post('/api/kullanicilar')
       .set('Authorization', `Bearer ${userToken}`)
-      .send({ ad: 'Yetkisiz', soyad: 'İşlem', eposta: `blocked_${testEmail}` });
+      .send({ ad: 'Yetkisiz', soyad: 'İşlem', eposta: `blocked_${stamp}@subu.edu.tr` });
     expect(res.statusCode).toBe(403);
   });
 
-  test('kullanıcı kendi web şifresini değiştirebilmeli', async () => {
+  test('admin yeni geçici şifre verince kullanıcının oturumları kapanmalı ve kilit geri gelmeli', async () => {
     const res = await request(app)
-      .post('/api/auth/change-password')
-      .set('Authorization', `Bearer ${userToken}`)
-      .send({
-        mevcutSifre: createdUser.initialPassword,
-        yeniSifre: newWebPassword,
-        yeniSifreTekrar: newWebPassword
-      });
+      .post(`/api/kullanicilar/${createdUser.kullaniciId}/gecici-sifre`)
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(res.statusCode).toBe(200);
+    expect(res.body.geciciSifre).toBeTruthy();
 
-    const oldLogin = await request(app)
-      .post('/api/auth/login')
-      .send({ eposta: testEmail, pin: createdUser.initialPassword });
-    expect(oldLogin.statusCode).toBe(401);
+    const oldSession = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${userToken}`);
+    expect(oldSession.statusCode).toBe(401);
 
-    const newLogin = await request(app)
-      .post('/api/auth/login')
-      .send({ eposta: testEmail, pin: newWebPassword });
-    expect(newLogin.statusCode).toBe(200);
-    userToken = newLogin.body.token;
+    const login = await request(app).post('/api/auth/login').send({ eposta: testEmail, pin: res.body.geciciSifre });
+    expect(login.statusCode).toBe(200);
+    expect(login.body.user.sifreDegistirmeZorunlu).toBe(true);
   });
 
-  test('kullanıcı kendi kapı PIN geçmişini görebilmeli ve PIN şifreli saklanmalı', async () => {
-    const res = await request(app)
-      .get(`/api/kullanicilar/${createdUser.kullaniciId}/pin-gecmisi`)
-      .set('Authorization', `Bearer ${userToken}`);
-    expect(res.statusCode).toBe(200);
-    expect(res.body.kayitlar).toHaveLength(1);
-    expect(res.body.kayitlar[0].pin).toBe(createdUser.initialPin);
-    expect(res.body.kayitlar[0].aktif).toBe(true);
-
-    const stored = await prisma.kapiSifreGecmisi.findFirst({
-      where: { kullaniciId: BigInt(createdUser.kullaniciId) }
-    });
-    expect(stored.pinSifreli).not.toContain(createdUser.initialPin);
-  });
-
-  test('tek kullanımlık bağlantı yalnızca web şifresini yenilemeli ve eski oturumu kapatmalı', async () => {
-    const beforeReset = await prisma.kullanici.findUnique({
-      where: { kullaniciId: BigInt(createdUser.kullaniciId) },
-      select: { pinHash: true }
-    });
-    const res = await request(app)
-      .post('/api/auth/forgot-password')
-      .send({ eposta: testEmail });
-
+  test('şifremi unuttum bağlantısı zorunlu değişim kilidini de kaldırmalı', async () => {
+    const res = await request(app).post('/api/auth/forgot-password').send({ eposta: testEmail });
     expect(res.statusCode).toBe(200);
     expect(res.body.resetUrl).toContain('token=');
-
-    const loginBeforeConsume = await request(app)
-      .post('/api/auth/login')
-      .send({ eposta: testEmail, pin: newWebPassword });
-    expect(loginBeforeConsume.statusCode).toBe(200);
-
     const resetToken = new URL(res.body.resetUrl).searchParams.get('token');
     const resetPassword = 'Sifirlanmis2027';
     const resetResult = await request(app)
@@ -131,30 +179,51 @@ describe('Admin hesap yönetimi ve kişisel güvenlik', () => {
       .send({ token: resetToken, yeniSifre: 'BaskaGuvenli2027', yeniSifreTekrar: 'BaskaGuvenli2027' });
     expect(reused.statusCode).toBe(400);
 
-    const oldSession = await request(app)
-      .get('/api/auth/me')
-      .set('Authorization', `Bearer ${userToken}`);
-    expect(oldSession.statusCode).toBe(401);
-
-    const oldLogin = await request(app)
-      .post('/api/auth/login')
-      .send({ eposta: testEmail, pin: newWebPassword });
-    expect(oldLogin.statusCode).toBe(401);
-
-    const newLogin = await request(app)
-      .post('/api/auth/login')
-      .send({ eposta: testEmail, pin: resetPassword });
-    expect(newLogin.statusCode).toBe(200);
-    userToken = newLogin.body.token;
-
-    const afterReset = await prisma.kullanici.findUnique({
-      where: { kullaniciId: BigInt(createdUser.kullaniciId) },
-      select: { pinHash: true }
-    });
-    expect(afterReset.pinHash).toBe(beforeReset.pinHash);
+    const login = await request(app).post('/api/auth/login').send({ eposta: testEmail, pin: resetPassword });
+    expect(login.statusCode).toBe(200);
+    expect(login.body.user.sifreDegistirmeZorunlu).toBe(false);
   });
 
-  test('admin standart kullanıcıyı silebilmeli', async () => {
+  test('aday listesi bölüm kadrosundan yalnızca hesabı olmayanları göstermeli', async () => {
+    const res = await request(app)
+      .get('/api/kullanicilar/aday-hocalar')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.toplamKadro).toBeGreaterThan(10);
+    const existing = await prisma.kullanici.findMany({ where: { eposta: { endsWith: '@subu.edu.tr' } }, select: { eposta: true } });
+    const existingSet = new Set(existing.map((u) => u.eposta.toLowerCase()));
+    res.body.adaylar.forEach((aday) => expect(existingSet.has(aday.eposta)).toBe(false));
+    expect(res.body.adaylar.length + res.body.kayitliSayisi).toBe(res.body.toplamKadro);
+  });
+
+  test('birden fazla yönetici olabilmeli; kişi kendi yetkisini kaldıramamalı', async () => {
+    const promote = await request(app)
+      .put(`/api/kullanicilar/${createdUser.kullaniciId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ rol: 'admin' });
+    expect(promote.statusCode).toBe(200);
+    expect(promote.body.rol).toBe('admin');
+
+    const admin = await getTestAdmin();
+    const selfDemote = await request(app)
+      .put(`/api/kullanicilar/${admin.kullaniciId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ rol: 'hoca' });
+    expect(selfDemote.statusCode).toBe(409);
+
+    const selfDelete = await request(app)
+      .delete(`/api/kullanicilar/${admin.kullaniciId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(selfDelete.statusCode).toBe(409);
+
+    const demote = await request(app)
+      .put(`/api/kullanicilar/${createdUser.kullaniciId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ rol: 'hoca' });
+    expect(demote.statusCode).toBe(200);
+  });
+
+  test('admin standart kullanıcıyı silebilmeli (geçmiş kaydı varsa pasife alınır)', async () => {
     const res = await request(app)
       .delete(`/api/kullanicilar/${createdUser.kullaniciId}`)
       .set('Authorization', `Bearer ${adminToken}`);
@@ -166,7 +235,13 @@ describe('Admin hesap yönetimi ve kişisel güvenlik', () => {
       expect(deleted.durum).toBe('pasif');
     } else {
       expect(deleted).toBeNull();
-      createdUser = null;
     }
+  });
+
+  test('pasif hesabın eski oturum anahtarı geçersiz olmalı', async () => {
+    const user = await prisma.kullanici.findUnique({ where: { kullaniciId: BigInt(createdUser.kullaniciId) } });
+    if (!user) return;
+    const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${signFor(user)}`);
+    expect(res.statusCode).toBe(401);
   });
 });

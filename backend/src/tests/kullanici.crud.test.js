@@ -10,7 +10,7 @@ const { getAdminToken } = require('./authTestUtils');
 describe('Kullanıcı CRUD Entegrasyon Testleri', () => {
   let olusturulanKullaniciId;
   let adminToken;
-  const testEposta = `crud_test_${Date.now()}@example.com`;
+  const testEposta = `crud_test_${Date.now()}@subu.edu.tr`;
 
   beforeAll(async () => { adminToken = await getAdminToken(); });
   const authorized = (method, url) => request(app)[method](url)
@@ -43,9 +43,9 @@ describe('Kullanıcı CRUD Entegrasyon Testleri', () => {
       });
 
     expect(res.statusCode).toEqual(201);
-    expect(res.body).toHaveProperty('kullaniciId');
-    expect(res.body.eposta).toEqual(testEposta);
-    olusturulanKullaniciId = res.body.kullaniciId;
+    expect(res.body.kullanici).toHaveProperty('kullaniciId');
+    expect(res.body.kullanici.eposta).toEqual(testEposta);
+    olusturulanKullaniciId = res.body.kullanici.kullaniciId;
   });
 
   test('GET /api/kullanicilar/:id - Oluşturulan kullanıcı getirilebilmeli', async () => {

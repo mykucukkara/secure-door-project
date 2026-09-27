@@ -75,7 +75,7 @@
 
       var descCell = '<div class="desc-cell" data-full="' + UI.escapeHtml(desc) + '" data-short="' + UI.escapeHtml(shortDesc) + '">' +
         '<span class="desc-text">' + UI.escapeHtml(shortDesc) + '</span>' +
-        (truncated ? ' <button type="button" class="btn btn-ghost btn-sm" data-action="toggle-desc" style="height:auto;padding:0 0.25rem;">Devamını gör</button>' : '') +
+        (truncated ? ' <button type="button" class="btn btn-ghost btn-sm" data-action="toggle-desc">Devamını gör</button>' : '') +
         '</div>';
 
       var photoCell = f.fotografVerisi
@@ -88,7 +88,7 @@
         '<td class="cell-muted">' + UI.escapeHtml(UI.formatDateTime(f.olusturulma)) + '</td>' +
         '<td>' + UI.escapeHtml(f.bildiren || '—') + '</td>' +
         '<td>' + UI.escapeHtml(f.arizaTuru || '—') + '</td>' +
-        '<td class="wrap" style="max-width: 320px;">' + descCell + '</td>' +
+        '<td class="wrap desc-cell">' + descCell + '</td>' +
         '<td>' + photoCell + '</td>' +
         '<td><button type="button" class="badge badge-btn badge-' + badgeInfo.variant + '" data-action="cycle-status" data-id="' + id + '" data-durum="' + UI.escapeHtml(f.durum || '') + '">' + badgeInfo.label + '</button></td>' +
         '</tr>';

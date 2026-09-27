@@ -73,16 +73,30 @@ const publicReportLimiter = rateLimit({
 // Middleware'ler
 app.use(express.json({ limit: '5mb' }));
 const corsOrigins = allowedCorsOrigins();
-app.use(cors({
-    origin(origin, callback) {
-        if (!origin || corsOrigins.includes(origin)) return callback(null, true);
-        const error = new Error('Bu kaynaktan API erişimine izin verilmiyor.');
-        error.statusCode = 403;
-        return callback(error);
-    },
-    credentials: false,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+// Panel, nginx üzerinden aynı adresten (/api) çağrıldığında istek aynı
+// kökenlidir; hangi port/IP ile açılırsa açılsın izin verilir. Farklı bir
+// kökenden gelen istekler yalnızca CORS_ORIGIN listesindeyse kabul edilir.
+function isSameOrigin(req, origin) {
+    try {
+        const host = String(req.get('x-forwarded-host') || req.get('host') || '').split(',')[0].trim();
+        return Boolean(host) && new URL(origin).host === host;
+    } catch (error) {
+        return false;
+    }
+}
+app.use(cors((req, callback) => {
+    const origin = req.get('origin');
+    const baseOptions = {
+        credentials: false,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization']
+    };
+    if (!origin || corsOrigins.includes(origin) || isSameOrigin(req, origin)) {
+        return callback(null, { ...baseOptions, origin: true });
+    }
+    const error = new Error('Bu kaynaktan API erişimine izin verilmiyor.');
+    error.statusCode = 403;
+    return callback(error);
 }));
 
 // Healthcheck Route

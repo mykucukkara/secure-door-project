@@ -16,39 +16,77 @@ const serializeUser = (user) => ({
   kullaniciId: user.kullaniciId.toString(),
   ad: user.ad,
   soyad: user.soyad,
+  unvan: user.unvan || null,
   eposta: user.eposta,
   birimId: user.birimId,
   rol: user.rol,
-  durum: user.durum
+  durum: user.durum,
+  sifreDegistirmeZorunlu: Boolean(user.sifreDegistirmeZorunlu),
+  sifreGecerlilikBitis: user.sifreDegistirmeZorunlu ? user.sifreGecerlilikBitis : null
 });
+
+function signSessionToken(user) {
+  return jwt.sign({
+    kullaniciId: user.kullaniciId.toString(),
+    eposta: user.eposta,
+    rol: user.rol,
+    oturumSurumu: user.oturumSurumu
+  }, JWT_SECRET, { algorithm: 'HS256', expiresIn: '8h' });
+}
+
+// Kullanıcı bulunamasa bile aynı sürede yanıt vermek için (e-posta
+// numaralandırma saldırılarına karşı) sahte bir hash doğrulanır.
+let dummyHashPromise = null;
+function dummyHash() {
+  if (!dummyHashPromise) dummyHashPromise = argon2.hash('securelab-zamanlama-dengeleme');
+  return dummyHashPromise;
+}
 
 router.post('/login', async (req, res) => {
   try {
     const normalizedEmail = String(req.body.eposta || '').trim().toLowerCase();
-    const password = String(req.body.pin || '');
+    const password = String(req.body.pin || req.body.sifre || '');
     if (!normalizedEmail || !password) {
       return res.status(400).json({ message: 'E-posta ve şifre gereklidir.' });
+    }
+    if (normalizedEmail.length > 128 || password.length > 128) {
+      return res.status(401).json({ message: 'E-posta veya şifre hatalı.' });
     }
 
     const user = await prisma.kullanici.findFirst({
       where: { eposta: { equals: normalizedEmail, mode: 'insensitive' } }
     });
-    const credentialHash = user?.sifreHash || user?.pinHash;
-    if (!credentialHash || !(await argon2.verify(credentialHash, password))) {
+    // Web girişi yalnızca web şifresiyle yapılır; kapı PIN'i web şifresi yerine geçmez.
+    const credentialHash = user?.sifreHash || null;
+    const passwordOk = credentialHash
+      ? await argon2.verify(credentialHash, password)
+      : (await argon2.verify(await dummyHash(), password), false);
+    if (!passwordOk) {
       return res.status(401).json({ message: 'E-posta veya şifre hatalı.' });
     }
     if (user.durum !== 'aktif') {
-      return res.status(403).json({ message: 'Kullanıcı hesabı aktif değil.' });
+      return res.status(403).json({ message: 'Kullanıcı hesabı aktif değil. Bölüm yöneticisiyle iletişime geçin.' });
+    }
+    if (user.sifreDegistirmeZorunlu && user.sifreGecerlilikBitis
+      && new Date(user.sifreGecerlilikBitis).getTime() < Date.now()) {
+      return res.status(403).json({
+        message: 'Geçici şifrenizin süresi dolmuş. "Şifremi unuttum" bağlantısını kullanın ya da yöneticiden yeni geçici şifre isteyin.',
+        code: 'GECICI_SIFRE_SURESI_DOLDU'
+      });
     }
 
-    const token = jwt.sign({
-      kullaniciId: user.kullaniciId.toString(),
-      eposta: user.eposta,
-      rol: user.rol,
-      oturumSurumu: user.oturumSurumu
-    }, JWT_SECRET, { expiresIn: '8h' });
+    const updated = await prisma.kullanici.update({
+      where: { kullaniciId: user.kullaniciId },
+      data: { sonGiris: new Date() }
+    });
 
-    return res.json({ message: 'Giriş başarılı.', token, user: serializeUser(user) });
+    return res.json({
+      message: user.sifreDegistirmeZorunlu
+        ? 'Giriş başarılı. Devam etmek için kendi şifrenizi belirleyin.'
+        : 'Giriş başarılı.',
+      token: signSessionToken(updated),
+      user: serializeUser(updated)
+    });
   } catch (error) {
     console.error('Login hatası:', error);
     return res.status(500).json({ message: 'Giriş işlemi tamamlanamadı.' });
@@ -144,26 +182,32 @@ router.post('/change-password', authenticateToken, async (req, res) => {
     if (newPassword !== confirmation) {
       return res.status(400).json({ message: 'Yeni şifreler eşleşmiyor.' });
     }
-    const validation = validateWebPassword(newPassword);
-    if (!validation.valid) return res.status(400).json({ message: validation.message });
 
     const user = await prisma.kullanici.findUnique({
       where: { kullaniciId: req.authenticatedUser.kullaniciId }
     });
+    const validation = validateWebPassword(newPassword, user || {});
+    if (!validation.valid) return res.status(400).json({ message: validation.message });
+
     const credentialHash = user?.sifreHash || user?.pinHash;
     if (!credentialHash || !(await argon2.verify(credentialHash, currentPassword))) {
-      return res.status(401).json({ message: 'Mevcut web şifresi hatalı.' });
+      return res.status(401).json({ message: user?.sifreDegistirmeZorunlu ? 'Geçici şifre hatalı.' : 'Mevcut web şifresi hatalı.' });
     }
     if (await argon2.verify(credentialHash, newPassword)) {
       return res.status(400).json({ message: 'Yeni şifre mevcut şifreyle aynı olamaz.' });
     }
+    if (user.pinHash && await argon2.verify(user.pinHash, newPassword)) {
+      return res.status(400).json({ message: 'Web şifresi kapı şifrenizle aynı olamaz.' });
+    }
 
-    await prisma.$transaction(async (transaction) => {
-      await transaction.kullanici.update({
+    const wasForced = Boolean(user.sifreDegistirmeZorunlu);
+    const updated = await prisma.$transaction(async (transaction) => {
+      const saved = await transaction.kullanici.update({
         where: { kullaniciId: user.kullaniciId },
         data: {
           sifreHash: await argon2.hash(newPassword),
           sifreGecerlilikBitis: null,
+          sifreDegistirmeZorunlu: false,
           oturumSurumu: { increment: 1 }
         }
       });
@@ -173,11 +217,21 @@ router.post('/change-password', authenticateToken, async (req, res) => {
         action: 'guncelle',
         tableName: 'kullanici',
         recordId: user.kullaniciId,
-        before: { webSifresi: 'mevcut' },
+        before: { webSifresi: wasForced ? 'gecici' : 'mevcut' },
         after: { webSifresi: 'degistirildi', tumOturumlar: 'kapatildi' }
       });
+      return saved;
     });
-    return res.json({ message: 'Web şifreniz değiştirildi. Lütfen yeniden giriş yapın.' });
+
+    // Diğer cihazlardaki oturumlar kapatıldı; şifreyi değiştiren bu oturum
+    // yeni bir anahtarla devam eder.
+    return res.json({
+      message: wasForced
+        ? 'Şifreniz belirlendi. SecureLab\'e hoş geldiniz.'
+        : 'Web şifreniz değiştirildi. Diğer cihazlardaki oturumlarınız kapatıldı.',
+      token: signSessionToken(updated),
+      user: serializeUser(updated)
+    });
   } catch (error) {
     console.error('Web şifresi değiştirme hatası:', error);
     return res.status(500).json({ message: 'Web şifresi değiştirilemedi.' });

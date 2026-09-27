@@ -58,6 +58,7 @@ async function consumePasswordReset(rawToken, passwordHash) {
       data: {
         sifreHash: passwordHash,
         sifreGecerlilikBitis: null,
+        sifreDegistirmeZorunlu: false,
         oturumSurumu: { increment: 1 }
       }
     });

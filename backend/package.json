@@ -7,7 +7,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "cross-env NODE_ENV=test jest --detectOpenHandles --forceExit --runInBand",
-    "import:academic-staff": "node prisma/import-academic-staff.js"
+    "import:academic-staff": "node prisma/seed.js --hocalar"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

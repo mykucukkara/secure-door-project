@@ -418,9 +418,13 @@ nano .env
 | `ESP32_SECRET_KEY` | Cihaza özel güvenlik anahtarı |
 | `JWT_SECRET` | Web oturum tokenlarını imzalar |
 | `PIN_HISTORY_ENCRYPTION_KEY` | PIN geçmişini şifreler |
-| `SEED_ADMIN_EMAIL` | İlk yönetici hesabının e-postası |
-| `SEED_ADMIN_PASSWORD` | İlk yönetici web parolası |
-| `SEED_ADMIN_PIN` | İlk yönetici kapı PIN'i |
+| `SEED_ADMIN_EMAIL` | Sistem yöneticisi hesabının e-postası |
+| `SEED_ADMIN_PASSWORD` | Sistem yöneticisinin ilk web şifresi (ilk girişte değiştirilir) |
+| `SEED_BOLUM_BASKANI_EPOSTA` | Yönetici olarak açılan bölüm başkanı |
+| `SEED_HOCA_PASSWORD` | Bölüm kadrosunun ilk web şifresi (ilk girişte değiştirilir) |
+| `IZINLI_EPOSTA_ALANLARI` | Hesap açılabilecek e-posta alan adları (varsayılan `subu.edu.tr`) |
+| `GECICI_SIFRE_GECERLILIK_SAAT` | Geçici şifre süresi (varsayılan 72) |
+| `APP_BASE_URL` | E-postadaki giriş bağlantısı için panel adresi |
 | `CORS_ORIGIN` | Web panelinin dış adresi |
 | `PASSWORD_RESET_BASE_URL` | Parola sıfırlama sayfasının dış adresi |
 | `PUBLIC_ISSUE_URL` | QR kodun açacağı öğrenci arıza sayfası |
@@ -668,7 +672,8 @@ PostgreSQL 5432 portu canlı ortamda dış dünyaya açılmamalıdır. Mevcut Co
 
 - `SEED_ADMIN_EMAIL`
 - `SEED_ADMIN_PASSWORD`
-- `SEED_ADMIN_PIN`
+- `SEED_HOCA_PASSWORD`
+- `SEED_BOLUM_BASKANI_EPOSTA`
 
 Web girişinde e-posta ve web parolası kullanılır. Web parolası ile kapı PIN'i aynı şey değildir.
 
@@ -690,7 +695,9 @@ Oturum açılan tüm sayfalar SUBÜ Bilgisayar Mühendisliği sitesinin düzenin
 |---|---|
 | `index.html` | Anasayfa: sistem özeti, son erişimler ve hızlı erişim |
 | `admin.html` | Kullanıcı yönetimi; yalnız admin |
-| `kart-kayit.html` | Kart Kayıt İstasyonu: USB ile bağlı istasyondan UID alıp kartı kullanıcıya tanımlama; yalnız admin |
+| `yetkilendirme.html` | Kart Yetkilendirme: UID gir (ya da USB istasyondan al), kartın sahibini seç, yetkilendir; onay bekleyen ve tanımlı kartlar; yalnız admin |
+| `kullanici-ekle.html` | Bölüm sitesinde olup hesabı olmayanlara hesap açma, geçici şifreyi e-postayla gönderme; yalnız admin |
+| `sifre-degistir.html` | Geçici şifreyle ilk girişte zorunlu şifre belirleme |
 | `yetkilendirme.html` | Kapıda okutulan bekleyen kartları onaylama ve kart yetkilerini açıp kapatma |
 | `gecmis-girisler.html` | Kart/şifre giriş geçmişi |
 | `ariza-gecmisi.html` | Arıza bildirimlerini görüntüleme ve yönetme |
@@ -718,7 +725,7 @@ Bu işlem kayıtları `hoca` rolüyle ekler veya günceller. Bu kullanıcıları
 
 1. `kart-kayit-istasyonu` klasöründeki kodu ayrı bir ESP32 + RC522'ye yükleyin (bkz. o klasörün README dosyası).
 2. İstasyonu USB ile yöneticinin bilgisayarına takın.
-3. Web panelinde **Kart Kayıt** sayfasını Chrome/Edge ile açıp **İstasyona Bağlan**'a basın, ESP32'nin COM portunu seçin.
+3. Web panelinde **Kart Yetkilendirme** sayfasını Chrome/Edge ile açıp **İstasyona Bağlan**'a basın, ESP32'nin COM portunu seçin.
 4. Kartı okutun; UID otomatik gelir ve kartın kayıtlı olup olmadığı gösterilir.
 5. Kullanıcıyı seçip **Kartı Tanımla**'ya basın. Kart hemen aktif olur.
 

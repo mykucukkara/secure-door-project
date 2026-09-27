@@ -51,6 +51,11 @@
   }
 
   function redirectByRole(user) {
+    // Geçici şifreyle giren kullanıcı önce kendi şifresini belirler.
+    if (user && user.sifreDegistirmeZorunlu) {
+      location.replace('sifre-degistir.html');
+      return;
+    }
     // Rol fark etmeksizin herkes önce Panel'e (index.html) yönlendirilir.
     location.replace('index.html');
   }

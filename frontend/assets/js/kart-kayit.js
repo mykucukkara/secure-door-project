@@ -1,4 +1,4 @@
-/* SecureLab — kart-kayit.html (Kart Kayıt İstasyonu)
+/* SecureLab — Kart Yetkilendirme formu (yetkilendirme.html içinde)
    ESP32 + RC522 istasyonu seri porta "UID:04:A1:B2:C3" satırı yazar.
    Chrome/Edge'deki Web Serial API ile istasyona bağlanıp bu satırı okur,
    UID'yi kullanıcıya atar (POST /api/kartlar/onayla). Web Serial yoksa UID
@@ -17,6 +17,7 @@
     selectedUserId: '',
     uid: null,          // normalize edilmiş UID
     lookup: null,       // /api/kartlar/sorgula sonucu
+    onSaved: null,
     lookupSeq: 0,
     port: null,
     reader: null,
@@ -24,24 +25,12 @@
     logLines: []
   };
 
-  document.addEventListener('DOMContentLoaded', init);
-
-  async function init() {
-    var topbarActions = document.getElementById('topbarActions');
-    if (topbarActions && window.SecureTheme) {
-      window.SecureTheme.mountTopbarToggle(topbarActions);
-      var toggle = topbarActions.querySelector('.topbar-theme-toggle');
-      if (toggle) topbarActions.insertBefore(toggle, topbarActions.firstChild);
-    }
-
-    var user = await API.requireAuth();
-    if (!user) return;
-    if (user.rol !== 'admin') {
-      location.replace('index.html');
-      return;
-    }
-    window.SecureNav.init(user);
-
+  /**
+   * Kart Yetkilendirme sayfası (yetkilendirme.html) oturum kontrolünü yaptıktan
+   * sonra formu buradan başlatır. opts.onSaved: kart tanımlanınca çağrılır.
+   */
+  function mount(opts) {
+    state.onSaved = (opts && opts.onSaved) || null;
     wireForm();
     wireStation();
     loadUsers();
@@ -63,6 +52,7 @@
     var normalized = normalizeUid(raw);
     if (source !== 'input') input.value = normalized || String(raw || '');
     state.uid = normalized;
+    state.uidSource = normalized ? source : null;
 
     var display = document.getElementById('uidDisplay');
     var valueEl = document.getElementById('uidDisplayValue');
@@ -72,9 +62,10 @@
       valueEl.textContent = normalized;
       metaEl.textContent = source === 'serial'
         ? 'İstasyondan okundu · ' + new Date().toLocaleTimeString('tr-TR')
-        : source === 'door' ? 'Kapı okuyucusundaki son kart' : 'Elle girildi';
+        : source === 'door' ? 'Kapı okuyucusundaki son kart'
+        : source === 'pending' ? 'Onay bekleyen kartlardan seçildi' : 'Elle girildi';
       display.classList.add('has-uid');
-      if (source === 'serial' || source === 'door') {
+      if (source === 'serial' || source === 'door' || source === 'pending') {
         display.classList.remove('is-flash');
         void display.offsetWidth; // animasyonu yeniden başlat
         display.classList.add('is-flash');
@@ -84,7 +75,7 @@
       valueEl.textContent = input.value ? input.value.toUpperCase() : '— — — —';
       metaEl.textContent = input.value
         ? 'UID biçimi geçersiz. 4, 7 veya 10 baytlık HEX değer girin (ör. 04:A1:B2:C3).'
-        : 'İstasyona bağlanıp kartı okutun ya da UID\'yi aşağıya yazın.';
+        : 'İstasyonun ekranındaki / seri çıktısındaki UID\'yi aşağıya yazın.';
       display.classList.remove('has-uid');
       state.lookup = null;
       document.getElementById('lookupResult').innerHTML = '';
@@ -152,8 +143,7 @@
 
     document.getElementById('userFilter').addEventListener('input', renderUserOptions);
     document.getElementById('userSelect').addEventListener('change', function (e) {
-      state.selectedUserId = e.target.value;
-      updateSubmitState();
+      selectUser(e.target.value);
     });
 
     document.getElementById('useLastDoorScanBtn').addEventListener('click', useLastDoorScan);
@@ -165,12 +155,21 @@
     select.innerHTML = '<option disabled>Kullanıcılar yükleniyor…</option>';
     try {
       var users = await API.apiRequest('/api/kullanicilar?durum=aktif');
-      state.users = (Array.isArray(users) ? users : []).filter(function (u) { return u.durum === 'aktif'; });
+      state.users = (Array.isArray(users) ? users : [])
+        .filter(function (u) { return u.durum === 'aktif'; })
+        .sort(function (a, b) {
+          return ((a.ad || '') + ' ' + (a.soyad || '')).localeCompare((b.ad || '') + ' ' + (b.soyad || ''), 'tr');
+        });
       renderUserOptions();
     } catch (err) {
       select.innerHTML = '<option disabled>Kullanıcı listesi alınamadı</option>';
       UI.toast(err.message || 'Kullanıcı listesi alınamadı.', 'error');
     }
+  }
+
+  function userLabel(u) {
+    var name = ((u.ad || '') + ' ' + (u.soyad || '')).trim();
+    return name + (u.unvan ? ' (' + u.unvan + ')' : '') + (u.eposta ? ' — ' + u.eposta : '');
   }
 
   function renderUserOptions() {
@@ -186,10 +185,25 @@
       return;
     }
     select.innerHTML = list.map(function (u) {
-      var label = ((u.ad || '') + ' ' + (u.soyad || '')).trim() + (u.eposta ? ' — ' + u.eposta : '');
       var sel = String(u.kullaniciId) === String(state.selectedUserId) ? ' selected' : '';
-      return '<option value="' + UI.escapeHtml(u.kullaniciId) + '"' + sel + '>' + UI.escapeHtml(label) + '</option>';
+      return '<option value="' + UI.escapeHtml(u.kullaniciId) + '"' + sel + '>' + UI.escapeHtml(userLabel(u)) + '</option>';
     }).join('');
+    // Tek eşleşme kaldıysa otomatik seç.
+    if (list.length === 1 && q) {
+      select.value = String(list[0].kullaniciId);
+      selectUser(select.value);
+    }
+  }
+
+  function selectUser(id) {
+    state.selectedUserId = id;
+    var hint = document.getElementById('selectedUserHint');
+    var user = state.users.find(function (u) { return String(u.kullaniciId) === String(id); });
+    if (hint) {
+      hint.textContent = user ? 'Seçilen: ' + userLabel(user) : 'Listeden bir kişi seçin.';
+      hint.classList.toggle('is-selected', Boolean(user));
+    }
+    updateSubmitState();
   }
 
   async function useLastDoorScan() {
@@ -229,13 +243,14 @@
     try {
       var res = await API.apiRequest('/api/kartlar/onayla', {
         method: 'POST',
-        body: { kartUid: state.uid, userId: state.selectedUserId, kaynak: 'istasyon' }
+        body: { kartUid: state.uid, userId: state.selectedUserId, kaynak: state.uidSource === 'serial' ? 'istasyon' : 'panel' }
       });
       setAlert((res.message || 'Kart tanımlandı.') + ' (' + state.uid + ' → ' + userName + ')', 'success');
       UI.toast('Kart ' + userName + ' kullanıcısına tanımlandı.', 'success');
       appendLog('✓ ' + state.uid + ' → ' + userName + ' olarak tanımlandı', true);
       lookupCard(state.uid);
       loadRecentCards();
+      if (typeof state.onSaved === 'function') state.onSaved(state.uid);
     } catch (err) {
       setAlert(err.message || 'Kart tanımlanamadı.', 'error');
     } finally {
@@ -254,6 +269,7 @@
 
   async function loadRecentCards() {
     var container = document.getElementById('recentCardsContainer');
+    if (!container) return;
     try {
       var list = await API.apiRequest('/api/kart-yetkilendirmeler');
       list = (Array.isArray(list) ? list : []).slice(0, 10);
@@ -294,7 +310,7 @@
       document.getElementById('serialSupportAlert').innerHTML =
         '<div class="alert alert-warning mb-md"><div class="alert-body">' +
         'Bu tarayıcı istasyona doğrudan bağlanmayı (Web Serial) desteklemiyor. ' +
-        '<strong>Chrome</strong> veya <strong>Edge</strong> ile <strong>http://localhost:8080</strong> adresinden açın ' +
+        '<strong>Chrome</strong> veya <strong>Edge</strong> ile <strong>http://localhost</strong> adresinden açın ' +
         'ya da seri monitördeki UID\'yi aşağıdaki alana yapıştırın.' +
         '</div></div>';
       document.getElementById('serialLog').textContent = 'Web Serial kullanılamıyor.';
@@ -427,4 +443,15 @@
   window.addEventListener('beforeunload', function () {
     if (state.port) disconnect();
   });
+
+  window.KartForm = {
+    mount: mount,
+    setUid: function (uid, source) {
+      var input = document.getElementById('kartUid');
+      if (input) input.value = uid;
+      setUid(uid, source || 'door');
+      var filter = document.getElementById('userFilter');
+      if (filter) filter.focus();
+    }
+  };
 })();

@@ -23,6 +23,7 @@
     wrench: '<path d="M14.7 6.3a4 4 0 0 1-5.4 5.3L4 17v3h3l5.4-5.3a4 4 0 0 1 5.3-5.4l-2.6 2.6-2-2 2.6-2.6Z"></path>',
     qr: '<rect x="3.5" y="3.5" width="6" height="6" rx="1"></rect><rect x="14.5" y="3.5" width="6" height="6" rx="1"></rect><rect x="3.5" y="14.5" width="6" height="6" rx="1"></rect><path d="M14.5 14.5h3v3M20.5 14.5v2M14.5 20.5h3M20.5 20.5v-1"></path>',
     user: '<circle cx="12" cy="8.5" r="3.5"></circle><path d="M5 20a7 7 0 0 1 14 0"></path>',
+    userPlus: '<circle cx="10" cy="8.5" r="3.5"></circle><path d="M3.5 20a6.5 6.5 0 0 1 13 0"></path><path d="M19 8v6M16 11h6"></path>',
     menu: '<path d="M4 6h16M4 12h16M4 18h16"></path>',
     logout: '<path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"></path><path d="M16 16l4-4-4-4"></path><path d="M20 12H9"></path>',
     calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path>',
@@ -32,8 +33,8 @@
   var NAV_ITEMS = [
     { href: 'index.html', label: 'Anasayfa', icon: 'home', home: true },
     { href: 'admin.html', label: 'Kullanıcılar', icon: 'users', role: 'admin' },
-    { href: 'kart-kayit.html', label: 'Kart Kayıt', icon: 'card', role: 'admin' },
-    { href: 'yetkilendirme.html', label: 'Yetkilendirme', icon: 'key', role: 'admin' },
+    { href: 'kullanici-ekle.html', label: 'Kullanıcı Ekle', icon: 'userPlus', role: 'admin' },
+    { href: 'yetkilendirme.html', label: 'Kart Yetkilendirme', icon: 'card', role: 'admin' },
     { href: 'gecmis-girisler.html', label: 'Erişim Geçmişi', icon: 'clock' },
     { href: 'ariza-gecmisi.html', label: 'Arıza Kayıtları', icon: 'wrench' },
     { href: 'qr-kod.html', label: 'QR Kod', icon: 'qr' },
@@ -295,7 +296,7 @@
 
     if (nameEl) nameEl.textContent = fullName || user.eposta || 'Kullanıcı';
     if (roleEl) {
-      var roleMap = { admin: ['Yönetici', 'badge-warning'], hoca: ['Öğretim Üyesi', 'badge-info'], sistem: ['Sistem', 'badge-neutral'] };
+      var roleMap = { admin: ['Yönetici', 'badge-warning'], hoca: ['Öğretim Elemanı', 'badge-info'], sistem: ['Sistem', 'badge-neutral'] };
       var info = roleMap[user.rol] || [user.rol || '—', 'badge-neutral'];
       roleEl.textContent = info[0];
       roleEl.className = 'badge ' + info[1];

@@ -300,13 +300,22 @@
           method: 'POST',
           body: { mevcutSifre: mevcutSifre, yeniSifre: yeniSifre, yeniSifreTekrar: yeniSifreTekrar }
         });
-        setAlert('passwordFormAlert', res.message || 'Şifreniz güncellendi. Güvenliğiniz için tekrar giriş yapmanız gerekiyor.', 'success');
-        UI.toast('Şifreniz güncellendi. Yönlendiriliyorsunuz…', 'success');
         form.reset();
-        setTimeout(function () {
-          API.clearToken();
-          location.replace('login.html');
-        }, 1600);
+        if (res.token) {
+          // Diğer cihazlardaki oturumlar kapatıldı; bu oturum yeni anahtarla sürer.
+          API.replaceToken(res.token);
+          setAlert('passwordFormAlert', res.message || 'Şifreniz güncellendi.', 'success');
+          UI.toast('Şifreniz güncellendi.', 'success');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        } else {
+          setAlert('passwordFormAlert', res.message || 'Şifreniz güncellendi. Güvenliğiniz için tekrar giriş yapmanız gerekiyor.', 'success');
+          UI.toast('Şifreniz güncellendi. Yönlendiriliyorsunuz…', 'success');
+          setTimeout(function () {
+            API.clearToken();
+            location.replace('login.html');
+          }, 1600);
+        }
       } catch (err) {
         setAlert('passwordFormAlert', err.message || 'Şifre güncellenemedi.', 'error');
         btn.disabled = false;

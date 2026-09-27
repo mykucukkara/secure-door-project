@@ -14,6 +14,23 @@
     (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token);
   }
 
+  /** Mevcut depolama tercihini (Beni hatırla) koruyarak anahtarı yeniler. */
+  function replaceToken(token) {
+    var remember = false;
+    try { remember = Boolean(localStorage.getItem(TOKEN_KEY)); } catch (e) { remember = false; }
+    setToken(token, remember);
+  }
+
+  var PASSWORD_CHANGE_PAGE = 'sifre-degistir.html';
+
+  function onPasswordChangePage() {
+    return location.pathname.endsWith(PASSWORD_CHANGE_PAGE);
+  }
+
+  function goToPasswordChange() {
+    if (!onPasswordChangePage()) location.replace(PASSWORD_CHANGE_PAGE);
+  }
+
   function clearToken() {
     localStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(TOKEN_KEY);
@@ -42,10 +59,18 @@
     }
 
     var text = await response.text();
-    var data = text ? JSON.parse(text) : {};
+    var data = {};
+    if (text) {
+      try { data = JSON.parse(text); } catch (e) { data = { message: 'Sunucudan beklenmeyen bir yanıt alındı.' }; }
+    }
 
     if (!response.ok) {
-      if (response.status === 401 && path !== '/api/auth/login') {
+      if (response.status === 403 && data && data.code === 'SIFRE_DEGISTIRME_ZORUNLU') {
+        goToPasswordChange();
+      }
+      // Giriş ve şifre değiştirme formlarındaki "şifre hatalı" yanıtları
+      // oturumu kapatmaz; yalnızca formda hata olarak gösterilir.
+      if (response.status === 401 && path !== '/api/auth/login' && path !== '/api/auth/change-password') {
         clearToken();
         if (!location.pathname.endsWith('login.html')) location.replace('login.html');
       }
@@ -68,6 +93,11 @@
   async function requireAuth() {
     try {
       var res = await apiRequest('/api/auth/me');
+      // Geçici şifreyle giren kullanıcı önce kendi şifresini belirlemeli.
+      if (res.user && res.user.sifreDegistirmeZorunlu && !onPasswordChangePage()) {
+        goToPasswordChange();
+        return null;
+      }
       return res.user;
     } catch (e) {
       clearToken();
@@ -80,6 +110,7 @@
     apiRequest: apiRequest,
     getToken: getToken,
     setToken: setToken,
+    replaceToken: replaceToken,
     clearToken: clearToken,
     requireAuth: requireAuth
   };

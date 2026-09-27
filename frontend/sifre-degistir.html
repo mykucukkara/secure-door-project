@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Şifre Sıfırla · SecureLab | SUBÜ Bilgisayar Mühendisliği</title>
+<meta name="robots" content="noindex, nofollow">
+<title>Şifrenizi Belirleyin · SecureLab | SUBÜ Bilgisayar Mühendisliği</title>
 <script src="assets/js/theme-init.js?v=20260927-1"></script>
 <link rel="stylesheet" href="assets/css/tokens.css?v=20260927-1">
 <link rel="stylesheet" href="assets/css/base.css?v=20260927-1">
@@ -13,7 +14,7 @@
 <link rel="stylesheet" href="assets/css/subu.css?v=20260927-1">
 <link rel="icon" type="image/png" href="assets/img/subu-logo.png">
 </head>
-<body class="standalone-body" data-page="sifre-sifirla">
+<body class="standalone-body" data-page="sifre-degistir">
 <div class="auth-shell">
   <section class="auth-hero">
     <div class="auth-hero-brand">
@@ -25,8 +26,8 @@
       </span>
     </div>
     <div class="auth-hero-body">
-      <h1 class="auth-hero-title">Yeni şifrenizi belirleyin</h1>
-      <p class="auth-hero-text">Güvenliğiniz için en az 10 karakter uzunluğunda; büyük harf, küçük harf ve rakam içeren bir şifre seçin.</p>
+      <h1 class="auth-hero-title">Hesabınızı güvenceye alın</h1>
+      <p class="auth-hero-text">Size verilen geçici şifre yalnızca ilk giriş içindir. Devam etmeden önce yalnızca sizin bildiğiniz yeni bir şifre belirleyin. Yeni şifreniz belirlendiğinde geçici şifre geçersiz olur.</p>
     </div>
     <div class="auth-hero-footer">© 2026 SUBÜ Bilgisayar Mühendisliği · SecureLab</div>
   </section>
@@ -39,38 +40,54 @@
         <span><small>SAKARYA UYGULAMALI BİLİMLER ÜNİVERSİTESİ</small><strong>Bilgisayar Mühendisliği · SecureLab</strong></span>
       </div>
       <div class="auth-card-header">
-        <h2 class="auth-card-title">Şifreyi Sıfırla</h2>
-        <p class="auth-card-subtitle">Hesabınız için yeni bir şifre oluşturun.</p>
+        <h2 class="auth-card-title">Yeni Şifrenizi Belirleyin</h2>
+        <p class="auth-card-subtitle" id="welcomeText">Hoş geldiniz.</p>
       </div>
 
-      <div id="resetAlert" role="alert"></div>
+      <div class="first-login-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2"></rect><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"></path></svg>
+        <div>Güvenliğiniz için ilk girişte şifre değişikliği zorunludur. <span id="expiryText"></span></div>
+      </div>
 
-      <form class="auth-form" id="resetForm" novalidate>
+      <div id="changeAlert" role="alert"></div>
+
+      <form class="auth-form" id="changeForm" novalidate>
+        <input type="email" id="usernameHidden" autocomplete="username" hidden>
+        <div class="field">
+          <label class="field-label" for="mevcutSifre">Geçici şifre</label>
+          <input class="form-control mono" type="password" id="mevcutSifre" autocomplete="current-password" placeholder="E-postanızla gelen şifre" required maxlength="72">
+        </div>
+
         <div class="field">
           <label class="field-label" for="yeniSifre">Yeni şifre</label>
           <div class="input-group">
-            <input class="form-control" type="password" id="yeniSifre" name="yeniSifre" autocomplete="new-password" placeholder="En az 10 karakter" required minlength="10" maxlength="72">
+            <input class="form-control" type="password" id="yeniSifre" autocomplete="new-password" placeholder="En az 10 karakter" required minlength="10" maxlength="72" aria-describedby="policyList">
             <button type="button" class="input-group-btn" id="toggleNewPassword" aria-label="Şifreyi göster">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </button>
           </div>
-          <span class="field-hint">En az 10 karakter; büyük harf, küçük harf ve rakam içermeli. Adınızı veya e-posta kullanıcı adınızı içeremez.</span>
+          <ul class="policy-list" id="policyList" aria-live="polite">
+            <li data-rule="length">En az 10 karakter</li>
+            <li data-rule="upper">En az bir büyük harf</li>
+            <li data-rule="lower">En az bir küçük harf</li>
+            <li data-rule="digit">En az bir rakam</li>
+            <li data-rule="personal">Adınızı veya e-posta kullanıcı adınızı içermez</li>
+          </ul>
         </div>
 
         <div class="field">
           <label class="field-label" for="yeniSifreTekrar">Yeni şifre (tekrar)</label>
-          <input class="form-control" type="password" id="yeniSifreTekrar" name="yeniSifreTekrar" autocomplete="new-password" placeholder="Şifrenizi tekrar girin" required minlength="10" maxlength="72">
-          <span class="field-error">Şifreler eşleşmiyor.</span>
+          <input class="form-control" type="password" id="yeniSifreTekrar" autocomplete="new-password" placeholder="Yeni şifrenizi tekrar girin" required maxlength="72">
         </div>
 
-        <button type="submit" class="btn btn-primary btn-lg btn-block" id="resetSubmit">
-          <span id="resetSubmitText">Şifreyi Güncelle</span>
+        <button type="submit" class="btn btn-primary btn-lg btn-block" id="changeSubmit">
+          <span id="changeSubmitText">Şifremi Belirle ve Devam Et</span>
         </button>
 
-        <a class="auth-card-back" href="login.html">
+        <button type="button" class="auth-card-back btn-link" id="logoutLink">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
-          Girişe dön
-        </a>
+          Çıkış yap
+        </button>
       </form>
     </div>
   </section>
@@ -79,6 +96,6 @@
 <script src="assets/js/api.js?v=20260927-1" defer></script>
 <script src="assets/js/theme.js?v=20260927-1" defer></script>
 <script src="assets/js/ui.js?v=20260927-1" defer></script>
-<script src="assets/js/sifre-sifirla.js?v=20260927-1" defer></script>
+<script src="assets/js/sifre-degistir.js?v=20260927-1" defer></script>
 </body>
 </html>

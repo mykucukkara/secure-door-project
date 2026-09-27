@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Kullanıcı Ekle · SecureLab | SUBÜ Bilgisayar Mühendisliği</title>
+<script src="assets/js/theme-init.js?v=20260927-1"></script>
+<link rel="stylesheet" href="assets/css/tokens.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/base.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/layout.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/components.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/subu.css?v=20260927-1">
+<link rel="icon" type="image/png" href="assets/img/subu-logo.png">
+</head>
+<body data-page="kullanici-ekle" data-breadcrumb="Kullanıcı Ekle">
+<div class="app-shell">
+  <div class="app-body">
+    <main class="main-content">
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1 class="page-title">Yeni Kullanıcı Ekle</h1>
+          <p class="page-description">Bölüm sitesindeki akademik kadroda yer alıp henüz SecureLab hesabı olmayan öğretim elemanlarına hesap açın. Geçici şifre kişinin kurumsal e-postasına gönderilir; ilk girişte şifre değişikliği zorunludur.</p>
+        </div>
+        <div class="page-header-actions">
+          <a href="admin.html" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
+            Kullanıcı Listesi
+          </a>
+        </div>
+      </div>
+
+      <section class="card-box mb-lg">
+        <div class="card-box-header">
+          <div>
+            <div class="card-box-title">Bölüm Sitesinde Olup Hesabı Olmayanlar</div>
+            <div class="card-box-subtitle" id="sourceSubtitle">Bölüm sitesi kontrol ediliyor…</div>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="refreshBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg>
+            Siteyi Yeniden Kontrol Et
+          </button>
+        </div>
+        <div id="sourceWarning"></div>
+        <div id="candidatesContainer">
+          <div class="skeleton-row"><div class="skeleton"></div></div>
+          <div class="skeleton-row"><div class="skeleton"></div></div>
+          <div class="skeleton-row"><div class="skeleton"></div></div>
+        </div>
+      </section>
+
+      <section class="card-box">
+        <div class="card-box-header">
+          <div>
+            <div class="card-box-title">Listede Olmayan Birini Ekle</div>
+            <div class="card-box-subtitle">Bölüm sitesinde henüz görünmeyen bir öğretim elemanı için elle hesap açın</div>
+          </div>
+        </div>
+        <form id="manualForm" class="stack" novalidate>
+          <div id="manualAlert" role="alert"></div>
+          <div class="form-row-3">
+            <div class="field">
+              <label class="field-label" for="manualUnvan">Unvan <span class="optional">(opsiyonel)</span></label>
+              <select class="form-control" id="manualUnvan">
+                <option value="">Seçin…</option>
+                <option>Prof. Dr.</option>
+                <option>Doç. Dr.</option>
+                <option>Dr. Öğr. Üyesi</option>
+                <option>Öğr. Gör. Dr.</option>
+                <option>Öğr. Gör.</option>
+                <option>Arş. Gör. Dr.</option>
+                <option>Arş. Gör.</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="manualAd">Ad</label>
+              <input class="form-control" type="text" id="manualAd" maxlength="64" autocomplete="off" required>
+            </div>
+            <div class="field">
+              <label class="field-label" for="manualSoyad">Soyad</label>
+              <input class="form-control" type="text" id="manualSoyad" maxlength="64" autocomplete="off" required>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="manualEposta">Kurumsal e-posta</label>
+            <input class="form-control" type="email" id="manualEposta" maxlength="128" autocomplete="off" placeholder="kullaniciadi@subu.edu.tr" required>
+            <span class="field-hint" id="domainHint">Yalnızca @subu.edu.tr adresleri kabul edilir.</span>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="manualSubmit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16v11H4z"></path><path d="m4.5 7 7.5 6 7.5-6"></path></svg>
+              Hesap Oluştur ve E-posta Gönder
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- Onay penceresi -->
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="confirmTitle">Hesap oluşturulsun mu?</div>
+        <div class="modal-subtitle" id="confirmSubtitle"></div>
+      </div>
+      <button type="button" class="modal-close" data-modal-close aria-label="Kapat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Bu kişi için bir SecureLab hesabı açılacak ve aşağıdaki adrese <strong>geçici bir giriş şifresi</strong> gönderilecek:</p>
+      <div class="credential-row mt-sm">
+        <div>
+          <div class="credential-row-label">E-posta</div>
+          <div class="credential-row-value" id="confirmEmail">—</div>
+        </div>
+      </div>
+      <p class="text-meta mt-sm">Kişi bu şifreyle ilk girişinde kendi şifresini belirlemek zorundadır. Kapı şifresi (6 haneli PIN) otomatik oluşturulur; kişi Profilim sayfasından görebilir ve değiştirebilir.</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-modal-close>Vazgeç</button>
+      <button type="button" class="btn btn-primary" id="confirmSubmit">Hesabı Oluştur</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sonuç penceresi -->
+<div class="modal-backdrop" id="resultModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="resultTitle">Hesap Oluşturuldu</div>
+        <div class="modal-subtitle" id="resultSubtitle"></div>
+      </div>
+      <button type="button" class="modal-close" data-modal-close aria-label="Kapat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="resultBody"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary" data-modal-close>Tamam</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/api.js?v=20260927-1" defer></script>
+<script src="assets/js/theme.js?v=20260927-1" defer></script>
+<script src="assets/js/nav.js?v=20260927-1" defer></script>
+<script src="assets/js/ui.js?v=20260927-1" defer></script>
+<script src="assets/js/kullanici-ekle.js?v=20260927-1" defer></script>
+</body>
+</html>

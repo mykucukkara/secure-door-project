@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Arıza Geçmişi · SecureLab | SUBÜ Bilgisayar Mühendisliği</title>
-<script>(function(){try{var t=localStorage.getItem('securelab-theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-<link rel="stylesheet" href="assets/css/tokens.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/base.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/layout.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/components.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/subu.css?v=20260924-1">
+<script src="assets/js/theme-init.js?v=20260927-1"></script>
+<link rel="stylesheet" href="assets/css/tokens.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/base.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/layout.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/components.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/subu.css?v=20260927-1">
 <link rel="icon" type="image/png" href="assets/img/subu-logo.png">
 </head>
 <body data-page="ariza-gecmisi" data-breadcrumb="Arıza Geçmişi">
@@ -32,13 +32,13 @@
         </div>
 
         <div class="flex flex-wrap gap-md mb-md">
-          <select class="form-control" id="filterDurum" style="max-width: 200px;">
+          <select class="form-control filter-select" id="filterDurum">
             <option value="">Tüm Durumlar</option>
             <option value="OPEN">Açık</option>
             <option value="IN_PROGRESS">İnceleniyor</option>
             <option value="RESOLVED">Çözüldü</option>
           </select>
-          <span class="text-meta" style="align-self: center;">Durum rozetine tıklayarak sırayla değiştirebilirsiniz: Açık → İnceleniyor → Çözüldü</span>
+          <span class="text-meta self-center">Durum rozetine tıklayarak sırayla değiştirebilirsiniz: Açık → İnceleniyor → Çözüldü</span>
         </div>
 
         <div id="faultsContainer">
@@ -61,15 +61,15 @@
       </button>
     </div>
     <div class="modal-body">
-      <img id="photoModalImg" src="" alt="Arıza fotoğrafı" style="width: 100%; border-radius: var(--radius-md);">
+      <img id="photoModalImg" src="" alt="Arıza fotoğrafı" class="photo-modal-img">
     </div>
   </div>
 </div>
 
-<script src="assets/js/api.js?v=20260924-1" defer></script>
-<script src="assets/js/theme.js?v=20260924-1" defer></script>
-<script src="assets/js/nav.js?v=20260924-1" defer></script>
-<script src="assets/js/ui.js?v=20260924-1" defer></script>
-<script src="assets/js/ariza-gecmisi.js?v=20260924-1" defer></script>
+<script src="assets/js/api.js?v=20260927-1" defer></script>
+<script src="assets/js/theme.js?v=20260927-1" defer></script>
+<script src="assets/js/nav.js?v=20260927-1" defer></script>
+<script src="assets/js/ui.js?v=20260927-1" defer></script>
+<script src="assets/js/ariza-gecmisi.js?v=20260927-1" defer></script>
 </body>
 </html>

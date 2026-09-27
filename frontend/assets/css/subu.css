@@ -513,9 +513,33 @@ code, kbd, .mono {
 
 /* ==================== Giriş ve bağımsız sayfalar ==================== */
 
+/* Giriş ekranının sol paneli (SUBÜ BYS giriş sayfası gibi): kampüs manzarası
+   üzerinde kurumsal renklerde yarı saydam katman. Görsel yoksa yalnızca
+   renk geçişi görünür. Görsel: assets/img/giris-manzara.jpg */
 .auth-hero {
   background:
-    linear-gradient(160deg, rgba(31, 34, 92, 0.96) 0%, rgba(13, 25, 163, 0.94) 65%, rgba(5, 109, 176, 0.92) 100%);
+    linear-gradient(165deg, rgba(20, 23, 70, 0.82) 0%, rgba(31, 34, 92, 0.55) 45%, rgba(5, 109, 176, 0.35) 100%),
+    url("../img/giris-manzara.jpg") center / cover no-repeat,
+    linear-gradient(160deg, #1f225c 0%, #0d19a3 65%, #056db0 100%);
+}
+
+.auth-hero::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 45%;
+  background: linear-gradient(0deg, rgba(10, 12, 40, 0.75), transparent);
+  pointer-events: none;
+}
+
+.auth-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-hero-title,
+.auth-hero-text {
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
 }
 
 .auth-hero-brand {
@@ -730,4 +754,195 @@ select.form-control[size] option {
   display: block;
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+/* ---------- Giriş ekranı: mobilde logo (sol panel gizlenince) ---------- */
+.auth-mobile-brand {
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  font-family: var(--font-heading);
+  line-height: 1.2;
+}
+
+.auth-mobile-brand img {
+  height: 52px;
+  width: auto;
+}
+
+.auth-mobile-brand small {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.auth-mobile-brand strong {
+  display: block;
+  font-size: 15px;
+  color: var(--subu-navy, #313582);
+}
+
+[data-theme="dark"] .auth-mobile-brand strong {
+  color: var(--text-primary);
+}
+
+@media (max-width: 991px) {
+  .auth-mobile-brand {
+    display: flex;
+  }
+}
+
+/* ---------- Şifre kuralları kontrol listesi ---------- */
+.policy-list {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.policy-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.policy-list li::before {
+  content: "";
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  opacity: 0.6;
+}
+
+.policy-list li.is-ok {
+  color: var(--success, #20a953);
+}
+
+.policy-list li.is-ok::before {
+  opacity: 1;
+  border-color: currentColor;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center / 10px no-repeat,
+    currentColor;
+}
+
+.first-login-note {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+  border-radius: var(--radius-md);
+  background: rgba(5, 109, 176, 0.08);
+  border: 1px solid rgba(5, 109, 176, 0.25);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.first-login-note svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--subu-blue, #056db0);
+  margin-top: 1px;
+}
+
+button.auth-card-back {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  justify-self: center;
+}
+
+button.auth-card-back:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.data-table .cell-strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ---------- Kart Yetkilendirme ---------- */
+.user-listbox {
+  min-height: 11rem;
+  padding: 0.25rem;
+}
+
+.user-listbox option {
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
+}
+
+.user-listbox option:checked {
+  background: var(--subu-blue) linear-gradient(0deg, var(--subu-blue), var(--subu-blue));
+  color: #fff;
+}
+
+.field-hint.is-selected {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.station-details > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.station-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.station-details > summary::after {
+  content: "+";
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.station-details[open] > summary::after {
+  content: "−";
+}
+
+.permissions-search {
+  max-width: 260px;
+}
+
+@media (max-width: 640px) {
+  .permissions-search {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+.icon-btn.icon-btn-danger:hover {
+  color: var(--danger, #c0392b);
+  border-color: currentColor;
+}
+
+/* Satır içi stil yerine (İçerik Güvenlik Politikası style-src 'self') */
+.filter-grow { flex: 1 1 240px; min-width: 220px; }
+.filter-select { max-width: 200px; }
+.self-center { align-self: center; }
+.photo-modal-img { width: 100%; border-radius: var(--radius-md); }
+[data-action="toggle-desc"] { height: auto; padding: 0 0.25rem; }
+.desc-cell { max-width: 320px; }
+@media (max-width: 640px) {
+  .filter-select { max-width: 100%; }
 }

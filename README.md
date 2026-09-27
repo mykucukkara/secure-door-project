@@ -14,19 +14,55 @@ Kapı cihazları (ESP32), kart kayıt istasyonu, web paneli ve backend tek depod
 | `mosquitto/` | MQTT broker ayarları |
 | `docs/` | Proje rehberi, MQTT konuları, OTA, API örnekleri |
 
-## Bu sürümdeki değişiklikler
+## Bu sürümdeki değişiklikler (27 Eylül 2026)
 
-- **Kalıcı kapı şifresi:** Kapı şifreleri artık her gece değişmez. Her kullanıcının tek bir şifresi vardır;
-  **Profilim** sayfasından görebilir, isterse kendi belirlediği 6 haneli şifreyle ya da rastgele yeni bir şifreyle değiştirebilir.
-  Kolay tahmin edilen (111111, 123456…) ve başka kullanıcıda tanımlı şifreler kabul edilmez.
-  Eski davranış için `.env` → `PIN_OTOMATIK_YENILEME=true`.
-- **Geçici Şifre sayfası kaldırıldı**, işlevi Profilim sayfasına taşındı.
-- **Kart Kayıt İstasyonu:** `kart-kayit-istasyonu/` altında ESP32 kodu ve web panelinde **Kart Kayıt** sayfası.
-  Chrome/Edge, istasyona USB üzerinden (Web Serial) bağlanır, okutulan kartın UID'sini otomatik alır; yönetici kullanıcıyı seçip kartı tanımlar.
-- **Yeni tasarım:** Tüm sayfalar SUBÜ Bilgisayar Mühendisliği sitesinin düzenine göre yenilendi
-  (üst bilgi çubuğu, logo, mavi ana menü, sayfa başlığı bandı, alt bilgi; açık/koyu tema; mobil uyumlu).
-- Yeni API uçları: `GET/PUT /api/kullanicilar/:id/kapi-sifresi`, `GET /api/kullanicilar/:id/kartlar`, `GET /api/kartlar/sorgula/:uid`.
-- Veritabanı: `20260924120000_kalici_kapi_sifresi` migration'ı mevcut şifrelerin bitiş tarihlerini kaldırır (ilk açılışta otomatik çalışır).
+- **Gerçek hesaplar:** Veritabanı ilk kez kurulurken SUBÜ Bilgisayar Mühendisliği akademik kadrosunun
+  (bm.subu.edu.tr) tamamı için hesap açılır. **Bölüm başkanı yönetici**dir; ayrıca sistemin kendi yönetici
+  hesabı (şimdilik temsili e-posta) vardır. Sistemde birden fazla yönetici olabilir; son aktif yönetici silinemez,
+  kimse kendi yetkisini kaldıramaz.
+- **İlk girişte zorunlu şifre değişimi:** Geçici/başlangıç şifresiyle giren kullanıcı kendi şifresini belirlemeden
+  panelin hiçbir bölümünü kullanamaz (sunucu tarafında zorlanır). Geçici şifreler 72 saat geçerlidir.
+- **Yeni Kullanıcı Ekle sayfası:** Bölüm sitesinde görünen ama SecureLab hesabı olmayan öğretim elemanları listelenir.
+  **Hesap Oluştur** ile sunucu tahmin edilemez bir geçici şifre üretip kişinin kurumsal e-postasına gönderir.
+  SMTP tanımlı değilse şifre yöneticiye yalnızca bir kez gösterilir. Yalnızca `@subu.edu.tr` adresleri kabul edilir.
+- **Kart Yetkilendirme:** Kart ID (UID) girilir, kartın sahibi ad-soyad listesinden seçilir, yetkilendirilir.
+  Kart kayıt istasyonu USB ile bağlıysa UID kendiliğinden gelir. Onay bekleyen kartlar aynı sayfadadır.
+- **Kalıcı kapı şifresi:** Her kullanıcının tek bir kapı şifresi vardır, değişmez; Profilim sayfasından görülür.
+- **Güvenlik:** Güçlü şifre politikası (10+ karakter, büyük/küçük harf, rakam, kişisel bilgi içermez),
+  kapı PIN'i ile web girişi kapatıldı, e-posta numaralandırmaya karşı sabit süreli giriş, şifre/rol/durum
+  değişikliğinde tüm oturumların kapanması, satır içi betik/stil kaldırılarak İçerik Güvenlik Politikası'na uyum.
+- **Giriş ekranı:** SUBÜ BYS giriş sayfasındaki gibi sol panelde okul logosu ve kampüs manzarası.
+- **Veritabanı:** `20260927110000_sema_senkronu` (şemada olup migration'larda eksik kalan `onay_bekliyor`
+  kart durumu ve `erisim_kaydi.kapiSifreId`), `20260927120000_zorunlu_sifre_degisimi`.
+
+## Veritabanını sıfırdan kurma (tek seferlik)
+
+**Tüm kayıtlar silinir.** Proje klasöründe PowerShell:
+
+```powershell
+docker compose down -v; docker compose up -d --build; docker compose logs -f --tail 40 backend
+```
+
+(Onay sorarak aynı işi yapan betik: `powershell -ExecutionPolicy Bypass -File .\scripts\veritabani-sifirla.ps1`)
+
+Loglarda `Oluşturulan hesaplar (20)` satırını görünce `Ctrl+C` ile log izlemeyi bırakıp **http://localhost** adresini açın.
+
+### Başlangıç hesapları
+
+| Hesap | E-posta | İlk şifre |
+|---|---|---|
+| Sistem yöneticisi | `sistem.yonetici@securelab.local` (`SEED_ADMIN_EMAIL`) | `SEED_ADMIN_PASSWORD` (geliştirmede `SecureLab2026!`) |
+| Bölüm başkanı (yönetici) | `halitoztekin@subu.edu.tr` (`SEED_BOLUM_BASKANI_EPOSTA`) | `SEED_HOCA_PASSWORD` (geliştirmede `BmLab-2026!`) |
+| Diğer öğretim elemanları | bölüm sitesindeki kurumsal adresleri | `SEED_HOCA_PASSWORD` |
+
+Herkes ilk girişte kendi şifresini belirler. Üretimde `.env` içinde bu değerleri mutlaka değiştirin;
+aksi hâlde backend `NODE_ENV=production` ile açılmaz. Kadroya sonradan eklenenler için:
+`docker compose exec backend npm run import:academic-staff` ya da panelde **Kullanıcı Ekle**.
+
+### E-posta gönderimi
+
+Geçici şifre e-postaları için `.env` içinde `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`
+ve e-postadaki giriş bağlantısı için `APP_BASE_URL` (ör. `http://10.9.2.50`) tanımlayın.
 
 ## Hızlı başlangıç (Windows / Docker Desktop)
 
@@ -36,21 +72,10 @@ Copy-Item .env.example .env        # yalnızca ilk kurulumda
 docker compose up -d --build
 ```
 
-Tarayıcıdan **http://localhost:8080** adresini açın.
+Tarayıcıdan **http://localhost** adresini açın (`FRONTEND_PORT` ile değiştirilebilir).
 
 Frontend aynı adres üzerindeki `/api` yolunu backend servisine yönlendirir.
 Backend sağlık adresi: `http://localhost:3000/api/health`.
-
-### Geliştirme kullanıcıları
-
-| Rol | E-posta | Parola |
-|---|---|---|
-| Yönetici | `.env` → `SEED_ADMIN_EMAIL` (varsayılan `admin@securelab.local`) | `.env` → `SEED_ADMIN_PASSWORD` |
-
-Öğretim üyeleri yönetici tarafından **Kullanıcılar** sayfasından eklenir
-(ya da `docker compose exec backend npm run import:academic-staff`).
-
-Üretim ortamında varsayılan parola ve anahtarları mutlaka değiştirin.
 
 ## Kart Kayıt İstasyonu
 
@@ -61,13 +86,13 @@ Backend sağlık adresi: `http://localhost:3000/api/health`.
    pio device monitor      # kart okutunca UID burada görünür
    ```
 2. Seri monitörü kapatın (port aynı anda tek programda açılabilir).
-3. Panelde **Kart Kayıt** sayfasını açın → **İstasyona Bağlan** → COM portunu seçin → kartı okutun → kullanıcıyı seçip **Kartı Tanımla**.
+3. Panelde **Kart Yetkilendirme** sayfasını açın → **İstasyona Bağlan** → COM portunu seçin → kartı okutun (ya da seri ekrandaki UID'yi elle yazın) → kartın sahibini seçip **Kartı Yetkilendir**.
 
 Bağlantı şeması ve seri çıktı örneği: [`kart-kayit-istasyonu/README.md`](kart-kayit-istasyonu/README.md).
 
 ## Servisler
 
-- Frontend: `http://localhost:8080`
+- Frontend: `http://localhost`
 - Backend: `http://localhost:3000`
 - PostgreSQL: `localhost:5432`
 - MQTT: `localhost:1883`

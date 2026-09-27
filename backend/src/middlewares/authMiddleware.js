@@ -3,6 +3,16 @@ const prisma = require('../config/prisma');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'securelab-development-only-secret';
 
+const SIFRE_DEGISIMI_SIRASINDA_IZINLI = new Set([
+  '/api/auth/me',
+  '/api/auth/change-password',
+  '/api/auth/logout'
+]);
+
+function requestPath(req) {
+  return String(req.originalUrl || req.url || '').split('?')[0].replace(/\/+$/, '');
+}
+
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ')
@@ -14,7 +24,7 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     const userId = BigInt(decoded.kullaniciId || 0);
     const user = await prisma.kullanici.findUnique({
       where: { kullaniciId: userId },
@@ -23,7 +33,8 @@ const authenticateToken = async (req, res, next) => {
         eposta: true,
         rol: true,
         durum: true,
-        oturumSurumu: true
+        oturumSurumu: true,
+        sifreDegistirmeZorunlu: true
       }
     });
 
@@ -32,6 +43,15 @@ const authenticateToken = async (req, res, next) => {
     }
     if (Number(decoded.oturumSurumu) !== user.oturumSurumu) {
       return res.status(401).json({ message: 'Oturumunuz güvenlik nedeniyle sonlandırıldı. Lütfen yeniden giriş yapın.' });
+    }
+
+    // Geçici şifreyle giriş yapan kullanıcı, kendi şifresini belirleyene kadar
+    // yalnızca oturum bilgisi, şifre değiştirme ve çıkış uçlarını kullanabilir.
+    if (user.sifreDegistirmeZorunlu && !SIFRE_DEGISIMI_SIRASINDA_IZINLI.has(requestPath(req))) {
+      return res.status(403).json({
+        message: 'Devam etmeden önce geçici şifrenizi değiştirmeniz gerekiyor.',
+        code: 'SIFRE_DEGISTIRME_ZORUNLU'
+      });
     }
 
     req.authenticatedUser = user;

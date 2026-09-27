@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
 <title>Kullanıcılar · SecureLab | SUBÜ Bilgisayar Mühendisliği</title>
-<script>(function(){try{var t=localStorage.getItem('securelab-theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-<link rel="stylesheet" href="assets/css/tokens.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/base.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/layout.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/components.css?v=20260924-1">
-<link rel="stylesheet" href="assets/css/subu.css?v=20260924-1">
+<script src="assets/js/theme-init.js?v=20260927-1"></script>
+<link rel="stylesheet" href="assets/css/tokens.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/base.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/layout.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/components.css?v=20260927-1">
+<link rel="stylesheet" href="assets/css/subu.css?v=20260927-1">
 <link rel="icon" type="image/png" href="assets/img/subu-logo.png">
 </head>
 <body data-page="admin" data-breadcrumb="Kullanıcılar">
@@ -19,13 +20,13 @@
       <div class="page-header">
         <div class="page-header-text">
           <h1 class="page-title">Kullanıcılar</h1>
-          <p class="page-description">Sistemdeki kullanıcı hesaplarını yönetin, yeni hesap oluşturun ve yetkilerini düzenleyin.</p>
+          <p class="page-description">Hesapları düzenleyin, yönetici yetkisi verin, geçici şifre gönderin veya hesabı kapatın. Yeni hesaplar “Yeni Kullanıcı Ekle” sayfasından açılır.</p>
         </div>
         <div class="page-header-actions">
-          <button type="button" class="btn btn-primary" id="newUserBtn">
+          <a href="kullanici-ekle.html" class="btn btn-primary" id="newUserBtn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
-            <span>Yeni Kullanıcı</span>
-          </button>
+            <span>Yeni Kullanıcı Ekle</span>
+          </a>
         </div>
       </div>
 
@@ -38,18 +39,22 @@
         </div>
 
         <div class="flex flex-wrap gap-md mb-md" id="filterBar">
-          <div class="input-group" style="flex: 1 1 240px; min-width: 220px;">
+          <div class="input-group filter-grow">
             <input class="form-control" type="search" id="searchInput" placeholder="Ad, soyad veya e-posta ara…">
           </div>
-          <select class="form-control" id="filterDurum" style="max-width: 180px;">
+          <select class="form-control filter-select" id="filterDurum">
             <option value="">Tüm Durumlar</option>
             <option value="aktif">Aktif</option>
             <option value="pasif">Pasif</option>
           </select>
-          <select class="form-control" id="filterRol" style="max-width: 180px;">
+          <select class="form-control filter-select" id="filterRol">
             <option value="">Tüm Roller</option>
-            <option value="hoca">Hoca</option>
+            <option value="hoca">Öğretim Elemanı</option>
             <option value="admin">Yönetici</option>
+          </select>
+          <select class="form-control filter-select" id="filterIlkGiris">
+            <option value="">Tüm Hesaplar</option>
+            <option value="bekliyor">İlk girişi bekleyenler</option>
           </select>
         </div>
 
@@ -68,8 +73,8 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
     <div class="modal-header">
       <div>
-        <div class="modal-title" id="userModalTitle">Yeni Kullanıcı</div>
-        <div class="modal-subtitle" id="userModalSubtitle">Yeni bir kullanıcı hesabı oluşturun.</div>
+        <div class="modal-title" id="userModalTitle">Kullanıcıyı Düzenle</div>
+        <div class="modal-subtitle" id="userModalSubtitle"></div>
       </div>
       <button type="button" class="modal-close" data-modal-close aria-label="Kapat">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
@@ -78,6 +83,19 @@
     <form id="userForm">
       <div class="modal-body">
         <div id="userFormAlert" role="alert"></div>
+        <div class="field">
+          <label class="field-label" for="userUnvan">Unvan <span class="optional">(opsiyonel)</span></label>
+          <select class="form-control" id="userUnvan">
+            <option value="">—</option>
+            <option>Prof. Dr.</option>
+            <option>Doç. Dr.</option>
+            <option>Dr. Öğr. Üyesi</option>
+            <option>Öğr. Gör. Dr.</option>
+            <option>Öğr. Gör.</option>
+            <option>Arş. Gör. Dr.</option>
+            <option>Arş. Gör.</option>
+          </select>
+        </div>
         <div class="form-row">
           <div class="field">
             <label class="field-label" for="userAd">Ad</label>
@@ -89,29 +107,25 @@
           </div>
         </div>
         <div class="field">
-          <label class="field-label" for="userEposta">E-posta <span class="optional">(opsiyonel)</span></label>
+          <label class="field-label" for="userEposta">Kurumsal e-posta</label>
           <input class="form-control" type="email" id="userEposta" placeholder="ornek@subu.edu.tr">
         </div>
         <div class="form-row">
           <div class="field">
-            <label class="field-label" for="userBirimId">Birim ID <span class="optional">(opsiyonel)</span></label>
-            <input class="form-control" type="number" min="1" id="userBirimId" placeholder="Örn. 4">
-          </div>
-          <div class="field">
             <label class="field-label" for="userRol">Rol</label>
             <select class="form-control" id="userRol">
-              <option value="hoca">Hoca</option>
+              <option value="hoca">Öğretim Elemanı</option>
               <option value="admin">Yönetici</option>
             </select>
-            <span class="field-hint" id="userRolHint">Yeni kullanıcılar yalnızca "Hoca" rolüyle oluşturulabilir.</span>
+            <span class="field-hint" id="userRolHint">Yöneticiler kullanıcı ekleyip silebilir ve kart yetkilendirebilir.</span>
           </div>
-        </div>
-        <div class="field" id="userDurumField">
-          <label class="field-label" for="userDurum">Durum</label>
-          <select class="form-control" id="userDurum">
-            <option value="aktif">Aktif</option>
-            <option value="pasif">Pasif</option>
-          </select>
+          <div class="field" id="userDurumField">
+            <label class="field-label" for="userDurum">Durum</label>
+            <select class="form-control" id="userDurum">
+              <option value="aktif">Aktif</option>
+              <option value="pasif">Pasif (giriş ve kapı erişimi kapalı)</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -122,48 +136,21 @@
   </div>
 </div>
 
-<!-- Credentials reveal modal (after user creation) -->
+<!-- Geçici şifre sonucu (e-posta gönderilemezse bir kez gösterilir) -->
 <div class="modal-backdrop" id="credentialsModal">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="credentialsModalTitle">
     <div class="modal-header">
       <div>
-        <div class="modal-title" id="credentialsModalTitle">Kullanıcı Oluşturuldu</div>
-        <div class="modal-subtitle">Giriş bilgilerini kullanıcıyla güvenli bir şekilde paylaşın.</div>
+        <div class="modal-title" id="credentialsModalTitle">Geçici Şifre</div>
+        <div class="modal-subtitle" id="credentialsModalSubtitle"></div>
       </div>
       <button type="button" class="modal-close" data-modal-close aria-label="Kapat">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
       </button>
     </div>
-    <div class="modal-body">
-      <div class="credentials-callout">
-        <div class="credentials-callout-warning">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 21 19.5H3L12 3.5Z"></path><path d="M12 9.5v4"></path><path d="M12 16.8h.01"></path></svg>
-          <span>Web şifresi yalnızca bir kez gösterilir. Kapı şifresini kullanıcı daha sonra Profilim sayfasından görebilir ve değiştirebilir.</span>
-        </div>
-        <div class="credential-row">
-          <div>
-            <div class="credential-row-label">Başlangıç Şifresi</div>
-            <div class="credential-row-value" id="credInitialPassword">—</div>
-          </div>
-          <button type="button" class="copy-btn" id="copyPasswordBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="1.5"></rect><path d="M5 15V5a1 1 0 0 1 1-1h10"></path></svg>
-            Kopyala
-          </button>
-        </div>
-        <div class="credential-row">
-          <div>
-            <div class="credential-row-label">Kapı Şifresi (süresiz)</div>
-            <div class="credential-row-value" id="credInitialPin">—</div>
-          </div>
-          <button type="button" class="copy-btn" id="copyPinBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="1.5"></rect><path d="M5 15V5a1 1 0 0 1 1-1h10"></path></svg>
-            Kopyala
-          </button>
-        </div>
-      </div>
-    </div>
+    <div class="modal-body" id="credentialsBody"></div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-primary" data-modal-close>Anladım, Kapat</button>
+      <button type="button" class="btn btn-primary" data-modal-close>Tamam</button>
     </div>
   </div>
 </div>
@@ -206,10 +193,10 @@
   </div>
 </div>
 
-<script src="assets/js/api.js?v=20260924-1" defer></script>
-<script src="assets/js/theme.js?v=20260924-1" defer></script>
-<script src="assets/js/nav.js?v=20260924-1" defer></script>
-<script src="assets/js/ui.js?v=20260924-1" defer></script>
-<script src="assets/js/admin.js?v=20260924-1" defer></script>
+<script src="assets/js/api.js?v=20260927-1" defer></script>
+<script src="assets/js/theme.js?v=20260927-1" defer></script>
+<script src="assets/js/nav.js?v=20260927-1" defer></script>
+<script src="assets/js/ui.js?v=20260927-1" defer></script>
+<script src="assets/js/admin.js?v=20260927-1" defer></script>
 </body>
 </html>
