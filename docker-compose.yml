@@ -56,6 +56,7 @@ services:
       PORT: 3000
       JWT_SECRET: ${JWT_SECRET:-securelab-development-only-secret}
       PIN_HISTORY_ENCRYPTION_KEY: ${PIN_HISTORY_ENCRYPTION_KEY:-securelab-development-pin-history-key}
+      PIN_OTOMATIK_YENILEME: ${PIN_OTOMATIK_YENILEME:-false}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@securelab.local}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-SecureLab2026!}

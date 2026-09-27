@@ -1,10 +1,19 @@
 const cron = require('node-cron');
-const { refreshAllUsersPins } = require('../services/pinService');
+const { refreshAllUsersPins, isAutoRotationEnabled } = require('../services/pinService');
 
+/**
+ * Kapı şifreleri artık kalıcıdır; kullanıcı istediğinde Profil sayfasından
+ * günceller. Eski "her gece yeni şifre" davranışı yalnızca .env içinde
+ * PIN_OTOMATIK_YENILEME=true yapılırsa devreye girer.
+ */
 function initSifreCron() {
+  if (!isAutoRotationEnabled()) {
+    console.log('🔐 Kapı şifreleri kalıcı modda (PIN_OTOMATIK_YENILEME=false). Gece otomatik yenileme kapalı.');
+    return null;
+  }
+
   const timezone = process.env.APP_TIMEZONE || 'Europe/Istanbul';
-  // Her gece saat 00:00'da çalışır
-  cron.schedule('0 0 * * *', async () => {
+  const task = cron.schedule('0 0 * * *', async () => {
     console.log('[CRON] Günlük otomatik şifre yenileme başlatılıyor...');
     try {
       await refreshAllUsersPins();
@@ -14,7 +23,8 @@ function initSifreCron() {
     }
   }, { timezone });
 
-  console.log(`⏰ Otomatik şifre yenileme cron job'u aktifleştirildi (00:00, ${timezone}).`);
+  console.log(`⏰ Otomatik şifre yenileme aktif (00:00, ${timezone}).`);
+  return task;
 }
 
 module.exports = { initSifreCron };

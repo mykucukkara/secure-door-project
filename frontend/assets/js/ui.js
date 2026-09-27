@@ -38,7 +38,7 @@
       pasif: ['Pasif', 'danger']
     },
     rol: {
-      hoca: ['Hoca', 'info'],
+      hoca: ['Öğretim Üyesi', 'info'],
       admin: ['Yönetici', 'warning'],
       sistem: ['Sistem', 'neutral']
     },
@@ -61,9 +61,10 @@
   };
 
   var KAYNAK_MAP = {
-    manuel: 'Kullanıcı yenilemesi',
-    otomatik: 'Günlük otomatik',
-    yonetici: 'Yönetici oluşturması',
+    kullanici: 'Kullanıcı belirledi',
+    manuel: 'Rastgele yenileme',
+    otomatik: 'Günlük otomatik (eski)',
+    yonetici: 'Yönetici tarafından',
     baslangic: 'Başlangıç kaydı',
     eski_kayit: 'Geçiş öncesi kayıt'
   };

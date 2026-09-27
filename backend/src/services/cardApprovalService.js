@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { writeAudit } = require('./auditService');
+const { normalizeKartUid } = require('../utils/kartUid');
 
 /**
  * 1. ESP32'den bilinmeyen/tanımsız bir kart ID geldiğinde çalışır.
@@ -95,9 +96,15 @@ async function getPendingCards() {
  * 3. Yönetici kartı bir kullanıcıya (userId) atayıp onayladığında çalışır.
  * KartYetkilendirme tablosuna kayıt atar.
  */
-async function approveCard(kartUid, userId, adminId = null) {
+async function approveCard(kartUid, userId, adminId = null, notlar = null) {
   try {
-    const normalizedKartUid = String(kartUid).trim().toUpperCase();
+    const normalizedKartUid = normalizeKartUid(kartUid);
+    if (!normalizedKartUid) {
+      return {
+        success: false,
+        message: 'Kart UID biçimi geçersiz. Örnek: 04:A1:B2:C3 (4, 7 veya 10 bayt).'
+      };
+    }
     const kullaniciIdBigInt = BigInt(userId);
     const adminIdBigInt = adminId ? BigInt(adminId) : null;
 
@@ -138,7 +145,7 @@ async function approveCard(kartUid, userId, adminId = null) {
           durum: 'aktif',
           yetkilendiren: adminIdBigInt,
           yetkilendirilmeTarihi: new Date(),
-          notlar: 'Yönetici Paneli Üzerinden Onaylandı'
+          notlar: notlar || 'Yönetici Paneli Üzerinden Onaylandı'
         },
         create: {
           kartUid: normalizedKartUid,
@@ -146,7 +153,7 @@ async function approveCard(kartUid, userId, adminId = null) {
           birimId: kullanici.birimId,
           durum: 'aktif',
           yetkilendiren: adminIdBigInt,
-          notlar: 'Yönetici Paneli Üzerinden Onaylandı'
+          notlar: notlar || 'Yönetici Paneli Üzerinden Onaylandı'
         }
       });
       await writeAudit({
@@ -185,7 +192,7 @@ async function approveCard(kartUid, userId, adminId = null) {
 
 async function rejectCard(kartUid, adminId = null) {
   try {
-    const normalizedKartUid = String(kartUid).trim().toUpperCase();
+    const normalizedKartUid = normalizeKartUid(kartUid) || String(kartUid).trim().toUpperCase();
     const kart = await prisma.kart.findUnique({
       where: { kartUid: normalizedKartUid }
     });

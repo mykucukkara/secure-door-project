@@ -3,12 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Kod · SecureLab</title>
+<title>QR Kod · SecureLab | SUBÜ Bilgisayar Mühendisliği</title>
 <script>(function(){try{var t=localStorage.getItem('securelab-theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-<link rel="stylesheet" href="assets/css/tokens.css?v=20260811-1">
-<link rel="stylesheet" href="assets/css/base.css?v=20260811-1">
-<link rel="stylesheet" href="assets/css/standalone.css?v=20260811-1">
-<link rel="stylesheet" href="assets/css/components.css?v=20260811-1">
+<link rel="stylesheet" href="assets/css/tokens.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/base.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/layout.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/standalone.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/components.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/subu.css?v=20260924-1">
+<link rel="icon" type="image/png" href="assets/img/subu-logo.png">
 <style>
 @media print {
   .solo-header, .no-print, .floating-theme-toggle { display: none !important; }
@@ -17,27 +20,25 @@
 }
 </style>
 </head>
-<body class="standalone-body" data-page="qr-kod">
-<div class="solo-shell">
-  <div class="solo-header">
-    <a href="index.html" class="solo-brand">
-      <span class="solo-brand-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 9.5-4-1.2-7-5-7-9.5V6l7-3Z"></path><path d="M9.5 12l1.8 1.8L14.7 10"></path></svg>
-      </span>
-      <span>SecureLab</span>
-    </a>
-    <a href="index.html" class="btn btn-ghost btn-sm no-print">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
-      Panele Dön
-    </a>
-  </div>
+<body data-page="qr-kod" data-breadcrumb="QR Kod">
+<div class="app-shell">
+  <div class="app-body">
+    <main class="main-content">
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1 class="page-title">Arıza Bildirim QR Kodu</h1>
+          <p class="page-description">Bu QR kodu laboratuvar kapısına veya oda içine asın; öğrenciler ve personel telefonlarından arıza bildirim formunu açabilir.</p>
+        </div>
+      </div>
 
-  <div class="solo-card">
-    <div class="solo-card-header">
-      <h1 class="solo-card-title">Arıza Bildirim QR Kodu</h1>
-      <p class="solo-card-subtitle">Bu QR kodu, personelin telefonundan arıza bildirim formunu açması için kapı/oda içine asabilirsiniz.</p>
+      <div class="two-col">
+      <section class="card-box">
+    <div class="card-box-header">
+      <div>
+        <div class="card-box-title">QR Kod</div>
+        <div class="card-box-subtitle">Yazdırıp kapıya asabileceğiniz kalıcı bağlantı</div>
+      </div>
     </div>
-
     <div id="qrAlert" role="alert"></div>
 
     <div id="qrContainer">
@@ -61,8 +62,15 @@
       </a>
     </div>
 
-    <hr class="divider no-print">
+      </section>
 
+      <section class="card-box no-print">
+    <div class="card-box-header">
+      <div>
+        <div class="card-box-title">Form Adresi</div>
+        <div class="card-box-subtitle">Farklı bir alan adı kullanıyorsanız</div>
+      </div>
+    </div>
     <form class="stack no-print" id="customUrlForm">
       <div class="form-section-title">Özel adres (isteğe bağlı)</div>
       <p class="text-meta">Varsayılan olarak arıza bildirim formunun adresi kullanılır. Farklı bir alan adı/adres üzerinden yayınlıyorsanız burada geçersiz kılabilirsiniz.</p>
@@ -75,14 +83,16 @@
         <button type="button" class="btn btn-ghost" id="resetUrlBtn">Varsayılana dön</button>
       </div>
     </form>
+      </section>
+      </div>
+    </main>
   </div>
-
-  <div class="solo-footer">SecureLab Kurumsal Erişim Kontrol Sistemi</div>
 </div>
 
-<script src="assets/js/api.js?v=20260811-1" defer></script>
-<script src="assets/js/theme.js?v=20260811-1" defer></script>
-<script src="assets/js/ui.js?v=20260811-1" defer></script>
-<script src="assets/js/qr-kod.js?v=20260811-1" defer></script>
+<script src="assets/js/api.js?v=20260924-1" defer></script>
+<script src="assets/js/theme.js?v=20260924-1" defer></script>
+<script src="assets/js/nav.js?v=20260924-1" defer></script>
+<script src="assets/js/ui.js?v=20260924-1" defer></script>
+<script src="assets/js/qr-kod.js?v=20260924-1" defer></script>
 </body>
 </html>

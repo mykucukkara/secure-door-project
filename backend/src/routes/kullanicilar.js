@@ -1,7 +1,14 @@
 const express = require('express');
 const argon2 = require('argon2');
 const prisma = require('../config/prisma');
-const { refreshSingleUserPin, generateRandomPin } = require('../services/pinService');
+const {
+  refreshSingleUserPin,
+  generateUniquePin,
+  validateCustomPin,
+  isPinInUse,
+  setUserPin,
+  getCurrentPin
+} = require('../services/pinService');
 const { recordPinHistory, listPinHistory } = require('../services/pinHistoryService');
 const { writeAudit } = require('../services/auditService');
 const {
@@ -93,9 +100,16 @@ router.post('/', requireAdmin, async (req, res) => {
       return res.status(400).json({ hata: 'Yeni kullanıcılar standart kullanıcı rolüyle oluşturulur.' });
     }
 
-    const initialPin = String(pin || generateRandomPin());
-    if (!/^\d{6}$/.test(initialPin)) {
-      return res.status(400).json({ hata: 'Başlangıç PIN değeri 6 haneli olmalıdır.' });
+    let initialPin;
+    if (pin) {
+      initialPin = String(pin).trim();
+      const pinValidation = validateCustomPin(initialPin);
+      if (!pinValidation.valid) return res.status(400).json({ hata: pinValidation.message });
+      if (await isPinInUse(initialPin)) {
+        return res.status(409).json({ hata: 'Bu kapı şifresi başka bir kullanıcıda tanımlı. Farklı bir şifre seçin.' });
+      }
+    } else {
+      initialPin = await generateUniquePin();
     }
 
     const initialPassword = String(webPassword || generateTemporaryWebPassword());
@@ -104,7 +118,8 @@ router.post('/', requireAdmin, async (req, res) => {
       return res.status(400).json({ hata: passwordValidation.message });
     }
 
-    const pinExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // Kapı şifresi kalıcıdır; süresi dolmaz.
+    const pinExpiresAt = null;
     const passwordHash = await argon2.hash(initialPassword);
     const pinHash = await argon2.hash(initialPin);
     const user = await prisma.$transaction(async (transaction) => {
@@ -264,22 +279,77 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   }
 });
 
+function sendPinError(res, error) {
+  const status = error.statusCode || 400;
+  return res.status(status).json({ hata: error.message || 'Kapı şifresi işlemi başarısız oldu.' });
+}
+
+// Rastgele yeni (kalıcı) kapı şifresi üretir. Admin herkes için, kullanıcı kendisi için.
 router.post('/:id/sifre-yenile', requireSelfOrAdmin, async (req, res) => {
   try {
-    const result = await refreshSingleUserPin(req.params.id);
+    const isSelf = String(req.user.kullaniciId) === String(req.params.id);
+    const result = await refreshSingleUserPin(req.params.id, isSelf ? 'kullanici' : 'yonetici');
     await writeAudit({
       actorId: req.user.kullaniciId,
       action: 'guncelle',
       tableName: 'kapi_sifre_gecmisi',
       recordId: req.params.id,
-      after: { pin: 'yenilendi' }
+      after: { pin: 'rastgele_yenilendi' }
     });
     return res.json({
-      mesaj: 'Kullanıcının PIN değeri yenilendi ve aktif cihazlara bildirildi.',
+      mesaj: 'Yeni kapı şifresi oluşturuldu ve aktif cihazlara bildirildi.',
       veri: result
     });
   } catch (error) {
-    return res.status(400).json({ hata: error.message });
+    return sendPinError(res, error);
+  }
+});
+
+// Güncel (kalıcı) kapı şifresini görüntüle — Profil sayfası.
+router.get('/:id/kapi-sifresi', requireSelfOrAdmin, async (req, res) => {
+  try {
+    const result = await getCurrentPin(req.params.id);
+    await writeAudit({
+      actorId: req.user.kullaniciId,
+      action: 'guncelle',
+      tableName: 'kapi_sifre_gecmisi',
+      recordId: req.params.id,
+      after: { kapiSifresiGoruntulendi: true }
+    });
+    return res.json(result);
+  } catch (error) {
+    return sendPinError(res, error);
+  }
+});
+
+// Kapı şifresini güncelle. Gövde: { pin: "6 haneli" } ya da { rastgele: true }
+router.put('/:id/kapi-sifresi', requireSelfOrAdmin, async (req, res) => {
+  try {
+    const { pin, pinTekrar, rastgele } = req.body || {};
+    const isSelf = String(req.user.kullaniciId) === String(req.params.id);
+    if (!rastgele) {
+      if (!pin) return res.status(400).json({ hata: 'Yeni kapı şifresini girin.' });
+      if (pinTekrar !== undefined && String(pinTekrar) !== String(pin)) {
+        return res.status(400).json({ hata: 'Girilen şifreler birbiriyle eşleşmiyor.' });
+      }
+    }
+    const result = await setUserPin(req.params.id, {
+      pin: rastgele ? undefined : pin,
+      kaynak: isSelf ? 'kullanici' : 'yonetici'
+    });
+    await writeAudit({
+      actorId: req.user.kullaniciId,
+      action: 'guncelle',
+      tableName: 'kapi_sifre_gecmisi',
+      recordId: req.params.id,
+      after: { pin: rastgele ? 'rastgele_guncellendi' : 'kullanici_belirledi' }
+    });
+    return res.json({
+      mesaj: 'Kapı şifreniz güncellendi. Yeni şifre hemen geçerlidir ve süresi dolmaz.',
+      veri: result
+    });
+  } catch (error) {
+    return sendPinError(res, error);
   }
 });
 
@@ -308,6 +378,33 @@ router.get('/:id/pin-gecmisi', requireSelfOrAdmin, async (req, res) => {
   } catch (error) {
     console.error('Kapı şifresi geçmişi alınırken hata:', error);
     return res.status(500).json({ hata: 'Kapı şifresi geçmişi alınamadı.' });
+  }
+});
+
+// Kullanıcıya tanımlı kartlar (Profil sayfası için)
+router.get('/:id/kartlar', requireSelfOrAdmin, async (req, res) => {
+  try {
+    const cards = await prisma.kartYetkilendirme.findMany({
+      where: { kullaniciId: BigInt(req.params.id) },
+      select: {
+        kartYetkiId: true,
+        kartUid: true,
+        durum: true,
+        yetkilendirilmeTarihi: true,
+        kart: { select: { durum: true } }
+      },
+      orderBy: { yetkilendirilmeTarihi: 'desc' }
+    });
+    return res.json(cards.map((card) => ({
+      kartYetkiId: card.kartYetkiId.toString(),
+      kartUid: card.kartUid,
+      yetkiDurum: card.durum,
+      kartDurum: card.kart?.durum || null,
+      yetkilendirilmeTarihi: card.yetkilendirilmeTarihi
+    })));
+  } catch (error) {
+    console.error('Kullanıcı kartları alınırken hata:', error);
+    return res.status(500).json({ hata: 'Kart bilgileri alınamadı.' });
   }
 });
 

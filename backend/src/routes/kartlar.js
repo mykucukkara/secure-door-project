@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../config/prisma');
 const cardApprovalService = require('../services/cardApprovalService');
+const { normalizeKartUid } = require('../utils/kartUid');
 const {
     authenticateToken,
     requireAdmin,
@@ -38,7 +39,7 @@ router.get('/onay-bekleyenler', authenticateToken, requireAdmin, async (req, res
 // POST /api/kartlar/onayla - Yetkilendirme panelinden kartı kullanıcıya ata
 router.post('/onayla', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const { kartUid, userId } = req.body;
+        const { kartUid, userId, kaynak } = req.body;
 
         if (!kartUid || !userId) {
             return res.status(400).json({ 
@@ -47,7 +48,10 @@ router.post('/onayla', authenticateToken, requireAdmin, async (req, res) => {
             });
         }
 
-        const result = await cardApprovalService.approveCard(kartUid, userId, req.user.kullaniciId);
+        const notlar = kaynak === 'istasyon'
+            ? 'Kart Kayıt İstasyonu üzerinden tanımlandı'
+            : null;
+        const result = await cardApprovalService.approveCard(kartUid, userId, req.user.kullaniciId, notlar);
         
         if (result.success) {
             return res.json(result);
@@ -102,6 +106,39 @@ router.post('/reddet', authenticateToken, requireAdmin, async (req, res) => {
             success: false,
             error: 'Kart isteği reddedilemedi.'
         });
+    }
+});
+
+// GET /api/kartlar/sorgula/:uid - Kart Kayıt İstasyonu: UID sistemde kayıtlı mı?
+router.get('/sorgula/:uid', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const kartUid = normalizeKartUid(req.params.uid);
+        if (!kartUid) {
+            return res.status(400).json({ hata: 'Kart UID biçimi geçersiz. Örnek: 04:A1:B2:C3' });
+        }
+        const [kart, yetki] = await Promise.all([
+            prisma.kart.findUnique({ where: { kartUid } }),
+            prisma.kartYetkilendirme.findUnique({
+                where: { kartUid },
+                include: {
+                    kullanici: { select: { kullaniciId: true, ad: true, soyad: true, eposta: true, durum: true } }
+                }
+            })
+        ]);
+        return res.json({
+            kartUid,
+            kayitli: Boolean(kart),
+            kartDurum: kart?.durum || null,
+            yetki: yetki ? {
+                kartYetkiId: yetki.kartYetkiId,
+                durum: yetki.durum,
+                yetkilendirilmeTarihi: yetki.yetkilendirilmeTarihi,
+                kullanici: yetki.kullanici
+            } : null
+        });
+    } catch (error) {
+        console.error('Kart sorgulanırken hata:', error);
+        return res.status(500).json({ hata: 'Kart bilgisi alınamadı.' });
     }
 });
 

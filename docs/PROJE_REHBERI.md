@@ -42,7 +42,7 @@
 SecureLab, bir laboratuvar kapısını aşağıdaki yöntemlerle yöneten erişim kontrol sistemidir:
 
 - RFID kart ile giriş
-- Tuş takımından geçici PIN ile giriş
+- Tuş takımından kişisel (kalıcı) kapı şifresiyle giriş
 - Web panelinden uzaktan kapı açma
 - Kapının açık veya kapalı olduğunu manyetik sensörle izleme
 - Kapı uzun süre açık kalırsa buzzer ve LED ile uyarı verme
@@ -684,17 +684,21 @@ Seed işlemi yalnız `.env` ile tanımlanan tek yönetici hesabını korur. Baş
 
 ### 14.3 Sayfalar
 
+Oturum açılan tüm sayfalar SUBÜ Bilgisayar Mühendisliği sitesinin düzenini izler: üst bilgi çubuğu, logo alanı, mavi ana menü, sayfa başlığı bandı ve alt bilgi. Bu iskelet `assets/js/nav.js` tarafından her sayfaya eklenir.
+
 | Sayfa | Görev |
 |---|---|
-| `index.html` | Genel panel ve sistem özeti |
+| `index.html` | Anasayfa: sistem özeti, son erişimler ve hızlı erişim |
 | `admin.html` | Kullanıcı yönetimi; yalnız admin |
-| `yetkilendirme.html` | Bekleyen kartları kullanıcıya atama ve kart yetkilerini açıp kapatma |
-| `gecmis-girisler.html` | Kart/PIN giriş geçmişi |
-| `gecici-sifre.html` | Kullanıcının kendisi veya admin tarafından yeni PIN üretme |
+| `kart-kayit.html` | Kart Kayıt İstasyonu: USB ile bağlı istasyondan UID alıp kartı kullanıcıya tanımlama; yalnız admin |
+| `yetkilendirme.html` | Kapıda okutulan bekleyen kartları onaylama ve kart yetkilerini açıp kapatma |
+| `gecmis-girisler.html` | Kart/şifre giriş geçmişi |
 | `ariza-gecmisi.html` | Arıza bildirimlerini görüntüleme ve yönetme |
 | `qr-kod.html` | Öğrenci arıza formunun QR kodu |
-| `hesabim.html` | Hesap bilgileri ve web parolası işlemleri |
+| `hesabim.html` | **Profilim**: hesap bilgileri, kalıcı kapı şifresini görme/değiştirme, web paneli şifresi |
 | `ariza-bildir.html` | Giriş gerektirmeyen öğrenci arıza formu |
+
+> Eski `gecici-sifre.html` sayfası kaldırıldı; kapı şifresi işlemleri Profilim sayfasına taşındı.
 
 ### 14.4 Akademik personeli veritabanına ekleme
 
@@ -709,6 +713,16 @@ Bu işlem kayıtları `hoca` rolüyle ekler veya günceller. Bu kullanıcıları
 ---
 
 ## 15. Kart okutma ve yetkilendirme akışı
+
+### 15.0 Kart Kayıt İstasyonu ile tanımlama (önerilen)
+
+1. `kart-kayit-istasyonu` klasöründeki kodu ayrı bir ESP32 + RC522'ye yükleyin (bkz. o klasörün README dosyası).
+2. İstasyonu USB ile yöneticinin bilgisayarına takın.
+3. Web panelinde **Kart Kayıt** sayfasını Chrome/Edge ile açıp **İstasyona Bağlan**'a basın, ESP32'nin COM portunu seçin.
+4. Kartı okutun; UID otomatik gelir ve kartın kayıtlı olup olmadığı gösterilir.
+5. Kullanıcıyı seçip **Kartı Tanımla**'ya basın. Kart hemen aktif olur.
+
+İstasyon seri ekrana `UID:04:A1:B2:C3` satırı yazar; web sayfası bu satırı okur. Web Serial olmayan tarayıcıda UID seri monitörden kopyalanıp elle girilebilir.
 
 ### 15.1 Yeni/bilinmeyen kart
 
@@ -749,15 +763,19 @@ Mevcut güvenlik politikasında kartlar çevrimdışı açılmaz. Kart doğrulam
 
 ## 16. PIN ile giriş akışı
 
-### 16.1 Yeni PIN üretme
+### 16.1 Kapı şifresi (kalıcı PIN)
 
-1. Web panelinde `Geçici Şifre` sayfası açılır.
-2. Kullanıcı kendisi için veya admin seçilen kullanıcı için PIN üretir.
-3. Backend 6 haneli rastgele PIN oluşturur.
-4. PIN hash olarak veritabanına kaydedilir.
-5. PIN 24 saat geçerli olacak şekilde işaretlenir.
-6. Uygun cihazlara MQTT ile çevrimdışı PIN listesi gönderilir.
-7. Düz PIN ekranda bir kez gösterilir; kullanıcı not almalıdır.
+Kapı şifresi artık **kalıcıdır**; her gece değişmez.
+
+1. Kullanıcı web panelinde **Profilim** sayfasını açar.
+2. **Kapı Şifresi** kartında güncel şifresini **Göster** ile görebilir (30 sn sonra otomatik gizlenir) ve kopyalayabilir.
+3. Değiştirmek isterse ya kendi belirlediği 6 haneli şifreyi girer ya da **Rastgele oluştur** seçeneğini kullanır.
+4. Kolay tahmin edilen (111111, 123456 vb.) ve başka bir kullanıcıda tanımlı şifreler kabul edilmez.
+5. Şifre veritabanında argon2 hash ile, görüntülenebilmesi için ayrıca AES-256-GCM ile şifreli saklanır (`PIN_HISTORY_ENCRYPTION_KEY`).
+6. Yeni şifre MQTT ile aktif kapı cihazlarının çevrimdışı listesine hemen gönderilir.
+7. Yönetici, Kullanıcılar sayfasından bir kullanıcıya yeni rastgele şifre oluşturabilir.
+
+Eski "her gece 00:00'da herkese yeni şifre" davranışı gerekiyorsa `.env` içinde `PIN_OTOMATIK_YENILEME=true` yapılabilir (varsayılan `false`).
 
 ### 16.2 Kapıda PIN girme
 

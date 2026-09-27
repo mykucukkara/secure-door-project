@@ -3,158 +3,169 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hesabım · SecureLab</title>
+<title>Profilim · SecureLab | SUBÜ Bilgisayar Mühendisliği</title>
 <script>(function(){try{var t=localStorage.getItem('securelab-theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-<link rel="stylesheet" href="assets/css/tokens.css?v=20260811-1">
-<link rel="stylesheet" href="assets/css/base.css?v=20260811-1">
-<link rel="stylesheet" href="assets/css/layout.css?v=20260811-1">
-<link rel="stylesheet" href="assets/css/components.css?v=20260811-1">
+<link rel="stylesheet" href="assets/css/tokens.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/base.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/layout.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/components.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/subu.css?v=20260924-1">
+<link rel="icon" type="image/png" href="assets/img/subu-logo.png">
 </head>
-<body data-page="hesabim" data-breadcrumb="Hesabım">
+<body data-page="hesabim" data-breadcrumb="Profilim">
 <div class="app-shell">
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <a href="index.html" class="sidebar-brand-link">
-        <span class="sidebar-brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 9.5-4-1.2-7-5-7-9.5V6l7-3Z"></path><path d="M9.5 12l1.8 1.8L14.7 10"></path></svg>
-        </span>
-        <span class="sidebar-brand-text">SecureLab</span>
-      </a>
-    </div>
-    <nav class="sidebar-nav" aria-label="Ana menü">
-      <a href="index.html" class="sidebar-link">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"></rect></svg>
-        <span>Panel</span>
-      </a>
-      <a href="admin.html" class="sidebar-link" data-role="admin">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4V20"></path><circle cx="10" cy="7.5" r="3.5"></circle><path d="M19.5 20v-1.2a3.3 3.3 0 0 0-2.3-3.15"></path><path d="M15.3 4.2a3.5 3.5 0 0 1 0 6.6"></path></svg>
-        <span>Kullanıcılar</span>
-      </a>
-      <a href="yetkilendirme.html" class="sidebar-link" data-role="admin">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15.5" r="4"></circle><path d="M11 12.5 18.5 5M16.5 7 19 9.5M13.7 9.8l2 2"></path></svg>
-        <span>Yetkilendirme</span>
-      </a>
-      <a href="gecmis-girisler.html" class="sidebar-link">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2.5"></path><path d="M9 2.5h6"></path></svg>
-        <span>Erişim Geçmişi</span>
-      </a>
-      <a href="ariza-gecmisi.html" class="sidebar-link">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.3L4 17v3h3l5.4-5.3a4 4 0 0 1 5.3-5.4l-2.6 2.6-2-2 2.6-2.6Z"></path></svg>
-        <span>Arıza Geçmişi</span>
-      </a>
-      <a href="qr-kod.html" class="sidebar-link">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1"></rect><rect x="14.5" y="3.5" width="6" height="6" rx="1"></rect><rect x="3.5" y="14.5" width="6" height="6" rx="1"></rect><path d="M14.5 14.5h3v3M20.5 14.5v2M14.5 20.5h3M20.5 20.5v-1"></path></svg>
-        <span>QR Kod</span>
-      </a>
-      <a href="gecici-sifre.html" class="sidebar-link">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15.5" r="4"></circle><path d="M11 12.5 19 4.5M16.3 7.2l2.3 2.3M19 4.5l1.6 1.6"></path></svg>
-        <span>Geçici Şifre</span>
-      </a>
-      <a href="hesabim.html" class="sidebar-link">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"></circle><path d="M5 20a7 7 0 0 1 14 0"></path></svg>
-        <span>Hesabım</span>
-      </a>
-    </nav>
-    <div class="sidebar-footer">SecureLab Erişim Kontrol Paneli</div>
-  </aside>
-  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-
   <div class="app-body">
-    <header class="topbar">
-      <button type="button" class="topbar-menu-btn" id="menuToggle" aria-label="Menüyü aç" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
-      </button>
-      <nav class="topbar-breadcrumb" aria-label="Konum">
-        <a href="index.html">Ana Sayfa</a>
-        <span class="topbar-breadcrumb-sep">/</span>
-        <span class="topbar-breadcrumb-current" id="breadcrumbCurrent">Hesabım</span>
-      </nav>
-      <div class="topbar-actions" id="topbarActions">
-        <a href="hesabim.html" class="topbar-profile">
-          <span class="topbar-profile-avatar" id="profileAvatar">--</span>
-          <span class="topbar-profile-meta">
-            <span class="topbar-profile-name" id="profileName">Yükleniyor…</span>
-            <span class="badge badge-neutral" id="profileRoleBadge">—</span>
-          </span>
-        </a>
-        <button type="button" class="btn btn-ghost btn-sm" id="logoutBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"></path><path d="M16 16l4-4-4-4"></path><path d="M20 12H9"></path></svg>
-          <span>Çıkış Yap</span>
-        </button>
-      </div>
-    </header>
-
     <main class="main-content">
       <div class="page-header">
         <div class="page-header-text">
-          <h1 class="page-title">Hesabım</h1>
-          <p class="page-description">Hesap bilgilerinizi görüntüleyin, şifrenizi değiştirin ve PIN geçmişinizi inceleyin.</p>
+          <h1 class="page-title">Profilim</h1>
+          <p class="page-description">Hesap bilgilerinizi, kapı şifrenizi ve web paneli giriş şifrenizi buradan yönetin.</p>
         </div>
       </div>
 
-      <div class="two-col" style="grid-template-columns: 1fr 1fr;">
+      <div class="two-col two-col-equal mb-md">
         <section class="card-box">
           <div class="card-box-header">
             <div>
-              <div class="card-box-title">Profil Bilgileri</div>
+              <div class="card-box-title">Hesap Bilgileri</div>
               <div class="card-box-subtitle">Hesabınıza ait temel bilgiler</div>
             </div>
           </div>
-          <div class="flex items-center gap-md mb-md" id="profileSummary">
+          <div class="profile-hero" id="profileSummary">
             <span class="profile-avatar-lg" id="summaryAvatar">--</span>
             <div>
-              <div style="font-size: 17px; font-weight: 700;" id="summaryName">—</div>
+              <div class="profile-hero-name" id="summaryName">—</div>
               <div class="text-meta" id="summaryEmail">—</div>
             </div>
           </div>
-          <div class="form-row">
-            <div class="field">
-              <span class="field-label">Rol</span>
-              <div id="summaryRoleBadge">—</div>
-            </div>
-            <div class="field">
-              <span class="field-label">Durum</span>
-              <div id="summaryDurumBadge">—</div>
-            </div>
-          </div>
+          <dl class="info-list">
+            <dt>Rol</dt><dd id="summaryRoleBadge">—</dd>
+            <dt>Hesap durumu</dt><dd id="summaryDurumBadge">—</dd>
+            <dt>Birim</dt><dd id="summaryBirim">—</dd>
+            <dt>Kayıtlı kart</dt><dd id="summaryCards">—</dd>
+          </dl>
         </section>
 
+        <section class="card-box" id="doorPinSection">
+          <div class="card-box-header">
+            <div>
+              <div class="card-box-title">Kapı Şifresi</div>
+              <div class="card-box-subtitle">Kapıdaki tuş takımında kullandığınız kişisel şifre</div>
+            </div>
+            <span class="badge badge-success" id="doorPinBadge">Süresiz</span>
+          </div>
+
+          <div class="door-pin-card" id="doorPinCard">
+            <div class="door-pin-label">Güncel kapı şifreniz</div>
+            <div class="door-pin-row">
+              <div class="pin-digits is-masked" id="doorPinDigits" aria-live="polite">
+                <span class="pin-digit">•</span><span class="pin-digit">•</span><span class="pin-digit">•</span>
+                <span class="pin-digit">•</span><span class="pin-digit">•</span><span class="pin-digit">•</span>
+              </div>
+              <div class="door-pin-actions">
+                <button type="button" class="btn btn-sm btn-on-dark" id="doorPinRevealBtn" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <span id="doorPinRevealText">Göster</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-on-dark" id="doorPinCopyBtn" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="1.5"></rect><path d="M5 15V5a1 1 0 0 1 1-1h10"></path></svg>
+                  Kopyala
+                </button>
+              </div>
+            </div>
+            <div class="door-pin-meta" id="doorPinMeta">
+              <span>Son değişiklik: <strong id="doorPinChanged">—</strong></span>
+              <span>Geçerlilik: <strong>Süresiz</strong></span>
+            </div>
+          </div>
+
+          <div class="mt-md">
+            <div class="flex-between flex-wrap gap-sm mb-sm">
+              <div class="form-section-title">Kapı şifresini güncelle</div>
+              <div class="segmented" role="tablist" aria-label="Şifre belirleme yöntemi">
+                <button type="button" class="is-active" data-pin-mode="custom" role="tab" aria-selected="true">Kendim belirleyeyim</button>
+                <button type="button" data-pin-mode="random" role="tab" aria-selected="false">Rastgele oluştur</button>
+              </div>
+            </div>
+            <div id="doorPinAlert" role="alert"></div>
+            <form class="stack" id="doorPinForm" novalidate>
+              <div class="form-row" id="doorPinCustomFields">
+                <div class="field">
+                  <label class="field-label" for="yeniPin">Yeni kapı şifresi</label>
+                  <input class="form-control pin-input" type="password" id="yeniPin" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]{6}" placeholder="••••••">
+                </div>
+                <div class="field">
+                  <label class="field-label" for="yeniPinTekrar">Yeni şifre (tekrar)</label>
+                  <input class="form-control pin-input" type="password" id="yeniPinTekrar" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]{6}" placeholder="••••••">
+                </div>
+              </div>
+              <div class="pin-strength" id="pinStrength" aria-live="polite"></div>
+              <p class="text-meta" id="doorPinRandomInfo" hidden>Sistem sizin için tahmin edilmesi zor, 6 haneli yeni bir şifre üretir. Yeni şifre bu sayfada gösterilir.</p>
+              <ul class="hint-list">
+                <li>Şifre tam olarak <strong>6 rakamdan</strong> oluşur.</li>
+                <li>111111, 123456 gibi tekrar eden veya ardışık rakamlar kullanılamaz.</li>
+                <li>Şifrenin süresi dolmaz; yalnızca siz değiştirdiğinizde değişir.</li>
+              </ul>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-accent" id="doorPinSubmit">Kapı Şifresini Kaydet</button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+
+      <div class="two-col two-col-equal mb-md">
         <section class="card-box">
           <div class="card-box-header">
             <div>
-              <div class="card-box-title">Şifre Değiştir</div>
-              <div class="card-box-subtitle">Şifreniz değiştirildikten sonra tekrar giriş yapmanız istenecektir.</div>
+              <div class="card-box-title">Web Paneli Şifresi</div>
+              <div class="card-box-subtitle">Bu panele giriş şifreniz. Kapı şifresinden ayrıdır.</div>
             </div>
           </div>
           <div id="passwordFormAlert" role="alert"></div>
           <form class="stack" id="passwordForm">
             <div class="field">
-              <label class="field-label" for="mevcutSifre">Mevcut Şifre</label>
+              <label class="field-label" for="mevcutSifre">Mevcut şifre</label>
               <input class="form-control" type="password" id="mevcutSifre" autocomplete="current-password" required>
             </div>
             <div class="form-row">
               <div class="field">
-                <label class="field-label" for="yeniSifre">Yeni Şifre</label>
+                <label class="field-label" for="yeniSifre">Yeni şifre</label>
                 <input class="form-control" type="password" id="yeniSifre" autocomplete="new-password" required>
                 <span class="field-hint">8-72 karakter, en az bir harf ve bir rakam içermelidir.</span>
               </div>
               <div class="field">
-                <label class="field-label" for="yeniSifreTekrar">Yeni Şifre (Tekrar)</label>
+                <label class="field-label" for="yeniSifreTekrar">Yeni şifre (tekrar)</label>
                 <input class="form-control" type="password" id="yeniSifreTekrar" autocomplete="new-password" required>
               </div>
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary" id="passwordSubmit">Şifreyi Güncelle</button>
+              <button type="submit" class="btn btn-primary" id="passwordSubmit">Web Şifresini Güncelle</button>
             </div>
           </form>
         </section>
+
+        <section class="card-box">
+          <div class="card-box-header">
+            <div>
+              <div class="card-box-title">Kapıda Kullanım</div>
+              <div class="card-box-subtitle">Kart veya kapı şifresiyle giriş</div>
+            </div>
+          </div>
+          <ol class="step-list">
+            <li><span><strong>Kartla giriş:</strong> Tanımlı kartınızı okuyucuya yaklaştırın; yeşil ışık yanınca kapı açılır.</span></li>
+            <li><span><strong>Şifreyle giriş:</strong> Tuş takımından 6 haneli kapı şifrenizi yazın ve <strong>#</strong> tuşuna basın.</span></li>
+            <li><span>Yanlış yazdıysanız <strong>*</strong> tuşu girilen rakamları temizler.</span></li>
+            <li><span>Şifrenizi değiştirdiğinizde yeni şifre birkaç saniye içinde kapı cihazlarına iletilir.</span></li>
+          </ol>
+        </section>
       </div>
 
-      <section class="card-box" style="margin-top: 1.25rem;">
+      <section class="card-box">
         <div class="card-box-header">
           <div>
-            <div class="card-box-title">PIN Geçmişi</div>
-            <div class="card-box-subtitle">Kapı erişiminde kullandığınız PIN kayıtları</div>
+            <div class="card-box-title">Kapı Şifresi Geçmişi</div>
+            <div class="card-box-subtitle">Kapı şifrenizde yapılan değişiklikler ve kapı kullanımı</div>
           </div>
         </div>
         <div id="pinHistoryContainer">
@@ -166,10 +177,10 @@
   </div>
 </div>
 
-<script src="assets/js/api.js?v=20260811-1" defer></script>
-<script src="assets/js/theme.js?v=20260811-1" defer></script>
-<script src="assets/js/nav.js?v=20260811-1" defer></script>
-<script src="assets/js/ui.js?v=20260811-1" defer></script>
-<script src="assets/js/hesabim.js?v=20260811-1" defer></script>
+<script src="assets/js/api.js?v=20260924-1" defer></script>
+<script src="assets/js/theme.js?v=20260924-1" defer></script>
+<script src="assets/js/nav.js?v=20260924-1" defer></script>
+<script src="assets/js/ui.js?v=20260924-1" defer></script>
+<script src="assets/js/hesabim.js?v=20260924-1" defer></script>
 </body>
 </html>

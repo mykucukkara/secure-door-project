@@ -88,7 +88,7 @@
           '<button type="button" class="icon-btn btn-sm" data-action="edit" data-id="' + u.kullaniciId + '" title="Düzenle" aria-label="Düzenle">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5"></path><path d="M13.5 7.5l3 3"></path></svg>' +
           '</button>' +
-          '<button type="button" class="icon-btn btn-sm" data-action="pin" data-id="' + u.kullaniciId + '" title="PIN Yenile" aria-label="PIN Yenile">' +
+          '<button type="button" class="icon-btn btn-sm" data-action="pin" data-id="' + u.kullaniciId + '" title="Kapı şifresini yenile" aria-label="Kapı şifresini yenile">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15.5" r="4"></circle><path d="M11 12.5 19 4.5M16.3 7.2l2.3 2.3M19 4.5l1.6 1.6"></path></svg>' +
           '</button>' +
           '<button type="button" class="icon-btn btn-sm" data-action="delete" data-id="' + u.kullaniciId + '" title="Sil / Pasife Al" aria-label="Sil">' +
@@ -99,7 +99,7 @@
     }).join('');
 
     container.innerHTML = '<div class="table-wrapper"><table class="data-table">' +
-      '<thead><tr><th>Ad Soyad</th><th>E-posta</th><th>Birim</th><th>Rol</th><th>Durum</th><th>Son PIN Değişimi</th><th>İşlemler</th></tr></thead>' +
+      '<thead><tr><th>Ad Soyad</th><th>E-posta</th><th>Birim</th><th>Rol</th><th>Durum</th><th>Kapı Şifresi Değişimi</th><th>İşlemler</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>';
 
     container.querySelectorAll('[data-action="edit"]').forEach(function (btn) {
@@ -282,12 +282,14 @@
     var u = state.users.find(function (x) { return String(x.kullaniciId) === String(id); });
     var label = u ? ((u.ad || '') + ' ' + (u.soyad || '')) : ('#' + id);
 
+    if (!window.confirm(label + ' için yeni bir kapı şifresi oluşturulacak. Kullanıcının mevcut şifresi hemen geçersiz olur. Devam edilsin mi?')) return;
+
     try {
       var res = await API.apiRequest('/api/kullanicilar/' + id + '/sifre-yenile', { method: 'POST' });
       var veri = res.veri || {};
-      document.getElementById('pinRevealModalSubtitle').textContent = label + ' için yeni PIN oluşturuldu.';
+      document.getElementById('pinRevealModalSubtitle').textContent = label + ' için yeni kapı şifresi oluşturuldu.';
       setText('pinRevealValue', veri.yeniPin || '—');
-      setText('pinRevealValidity', veri.gecerlilikBitis ? UI.formatDate(veri.gecerlilikBitis) : '—');
+      setText('pinRevealValidity', veri.gecerlilikBitis ? UI.formatDate(veri.gecerlilikBitis) : 'Süresiz');
 
       var devicesEl = document.getElementById('pinRevealDevices');
       var cihazlar = Array.isArray(veri.cihazlar) ? veri.cihazlar : [];
@@ -299,7 +301,7 @@
       }
 
       UI.openModal(document.getElementById('pinRevealModal'));
-      UI.toast(res.mesaj || 'PIN yenilendi.', 'success');
+      UI.toast(res.mesaj || 'Kapı şifresi yenilendi.', 'success');
     } catch (err) {
       UI.toast(err.message || 'PIN yenilenemedi.', 'error');
     }

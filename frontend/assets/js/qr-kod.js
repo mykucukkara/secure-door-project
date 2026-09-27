@@ -6,8 +6,17 @@
   var UI = window.SecureUI;
   var STORAGE_KEY = 'securelab_public_issue_url';
 
-  document.addEventListener('DOMContentLoaded', function () {
-    if (window.SecureTheme) window.SecureTheme.mountFloatingToggle();
+  document.addEventListener('DOMContentLoaded', async function () {
+    var topbarActions = document.getElementById('topbarActions');
+    if (topbarActions && window.SecureTheme) {
+      window.SecureTheme.mountTopbarToggle(topbarActions);
+      var toggle = topbarActions.querySelector('.topbar-theme-toggle');
+      if (toggle) topbarActions.insertBefore(toggle, topbarActions.firstChild);
+    }
+
+    var user = await API.requireAuth();
+    if (!user) return;
+    window.SecureNav.init(user);
 
     var savedUrl = '';
     try { savedUrl = localStorage.getItem(STORAGE_KEY) || ''; } catch (e) {}

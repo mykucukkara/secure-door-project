@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kart Kayıt · SecureLab | SUBÜ Bilgisayar Mühendisliği</title>
+<script>(function(){try{var t=localStorage.getItem('securelab-theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="stylesheet" href="assets/css/tokens.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/base.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/layout.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/components.css?v=20260924-1">
+<link rel="stylesheet" href="assets/css/subu.css?v=20260924-1">
+<link rel="icon" type="image/png" href="assets/img/subu-logo.png">
+</head>
+<body data-page="kart-kayit" data-breadcrumb="Kart Kayıt">
+<div class="app-shell">
+  <div class="app-body">
+    <main class="main-content">
+      <div class="page-header">
+        <div class="page-header-text">
+          <h1 class="page-title">Kart Kayıt İstasyonu</h1>
+          <p class="page-description">Yeni kartı istasyondaki okuyucuya okutun, UID otomatik gelsin; kullanıcıyı seçip kartı tek adımda tanımlayın.</p>
+        </div>
+        <div class="page-header-actions">
+          <span class="station-status" id="stationStatus">İstasyon bağlı değil</span>
+          <button type="button" class="btn btn-accent" id="stationConnectBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7V3M15 7V3"></path><rect x="6" y="7" width="12" height="7" rx="2"></rect><path d="M12 14v3a4 4 0 0 1-4 4"></path></svg>
+            <span id="stationConnectText">İstasyona Bağlan</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="serialSupportAlert"></div>
+
+      <div class="two-col mb-md">
+        <section class="card-box">
+          <div class="card-box-header">
+            <div>
+              <div class="card-box-title">Yeni Kart Tanımla</div>
+              <div class="card-box-subtitle">Okutulan kart bir kullanıcıya atanır ve hemen aktif olur</div>
+            </div>
+          </div>
+
+          <div class="uid-display" id="uidDisplay">
+            <span class="uid-display-label">Okutulan kart</span>
+            <span class="uid-display-value" id="uidDisplayValue">— — — —</span>
+            <span class="uid-display-meta" id="uidDisplayMeta">İstasyona bağlanıp kartı okutun ya da UID'yi aşağıya yazın.</span>
+          </div>
+
+          <div id="kartAlert" role="alert" class="mt-md"></div>
+
+          <form class="stack mt-md" id="kartForm" novalidate>
+            <div class="form-row">
+              <div class="field">
+                <label class="field-label" for="kartUid">Kart UID</label>
+                <div class="input-group">
+                  <input class="form-control mono" type="text" id="kartUid" autocomplete="off" spellcheck="false" placeholder="04:A1:B2:C3">
+                  <button type="button" class="input-group-btn" id="clearUidBtn" aria-label="UID alanını temizle" title="Temizle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                  </button>
+                </div>
+                <span class="field-hint">04A1B2C3, 04 a1 b2 c3 gibi yazımlar otomatik düzeltilir.</span>
+              </div>
+              <div class="field">
+                <label class="field-label" for="userFilter">Kullanıcı</label>
+                <input class="form-control" type="search" id="userFilter" placeholder="Ad, soyad veya e-posta ile ara…" autocomplete="off">
+                <select class="form-control mt-sm" id="userSelect" size="6" aria-label="Kullanıcı seçin"></select>
+              </div>
+            </div>
+
+            <div class="lookup-result" id="lookupResult" aria-live="polite"></div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="useLastDoorScanBtn" title="Kapıdaki okuyucuya en son okutulan kartı kullan">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg>
+                Kapıdaki son kartı al
+              </button>
+              <button type="submit" class="btn btn-accent" id="kartSubmit" disabled>Kartı Tanımla</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card-box">
+          <div class="card-box-header">
+            <div>
+              <div class="card-box-title">Nasıl Kullanılır?</div>
+              <div class="card-box-subtitle">ESP32 + RC522 kart kayıt istasyonu</div>
+            </div>
+          </div>
+          <ol class="step-list">
+            <li><span>İstasyonu USB kablosuyla bu bilgisayara takın.</span></li>
+            <li><span><strong>İstasyona Bağlan</strong>'a basın ve listeden ESP32'nin portunu (ör. <em>COM5</em>, <em>CP210x</em>, <em>CH340</em>) seçin.</span></li>
+            <li><span>Kartı okuyucuya yaklaştırın; UID yukarıda belirir ve kayıtlı olup olmadığı kontrol edilir.</span></li>
+            <li><span>Kullanıcıyı seçip <strong>Kartı Tanımla</strong>'ya basın.</span></li>
+          </ol>
+          <div class="form-section-title mt-md">İstasyon çıktısı</div>
+          <div class="serial-log" id="serialLog" aria-live="off">Bağlantı bekleniyor…</div>
+        </section>
+      </div>
+
+      <section class="card-box">
+        <div class="card-box-header">
+          <div>
+            <div class="card-box-title">Son Tanımlanan Kartlar</div>
+            <div class="card-box-subtitle">En son yetkilendirilen 10 kart</div>
+          </div>
+          <a href="yetkilendirme.html" class="btn btn-secondary btn-sm">Tüm Yetkiler</a>
+        </div>
+        <div id="recentCardsContainer">
+          <div class="skeleton-row"><div class="skeleton"></div></div>
+          <div class="skeleton-row"><div class="skeleton"></div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="assets/js/api.js?v=20260924-1" defer></script>
+<script src="assets/js/theme.js?v=20260924-1" defer></script>
+<script src="assets/js/nav.js?v=20260924-1" defer></script>
+<script src="assets/js/ui.js?v=20260924-1" defer></script>
+<script src="assets/js/kart-kayit.js?v=20260924-1" defer></script>
+</body>
+</html>

@@ -1,80 +1,120 @@
-/* SecureLab — design tokens */
+/* SecureLab — tasarım değişkenleri
+   Renk paleti Sakarya Uygulamalı Bilimler Üniversitesi (SUBÜ) Bilgisayar
+   Mühendisliği web sitesinin kurumsal renklerinden alınmıştır:
+     #313582  lacivert (logo yazısı, başlıklar)
+     #0D19A3  kraliyet mavisi (ana menü çubuğu)
+     #056DB0  mavi (bağlantılar, birincil düğmeler)
+     #00887A  camgöbeği/yeşil (üst bilgi çubuğu)
+     #20A953  yeşil (vurgu / çağrı düğmesi)
+   Yazı tipi: sitedeki gibi "Open Sans" (gövde) ve "Raleway" (başlık).
+   Sunucunun CSP kuralı dış yazı tiplerine izin vermediği için yüklü değilse
+   Windows'ta benzer görünen "Segoe UI" kullanılır. */
+
 :root {
-  /* Brand / sidebar - always dark navy regardless of theme */
-  --sidebar-bg: #0f2135;
-  --sidebar-bg-elevated: #142c46;
-  --sidebar-active: #1b3a5c;
-  --sidebar-text: #aebfd6;
+  /* Kurumsal SUBÜ renkleri — temadan bağımsız */
+  --subu-navy: #313582;
+  --subu-navy-dark: #1f225c;
+  --subu-royal: #0d19a3;
+  --subu-royal-dark: #0a1380;
+  --subu-blue: #056db0;
+  --subu-teal: #00887a;
+  --subu-green: #20a953;
+  --subu-green-dark: #178a43;
+  --on-brand: #ffffff;
+
+  /* Eski bileşenlerin (giriş ekranı vb.) kullandığı koyu kurumsal yüzey */
+  --sidebar-bg: #1f225c;
+  --sidebar-bg-elevated: #313582;
+  --sidebar-text: rgba(255, 255, 255, 0.82);
   --sidebar-text-active: #ffffff;
-  --sidebar-border: rgba(255,255,255,0.08);
 
-  /* Light theme surface tokens */
-  --bg-page: #f3f5f9;
+  /* Açık tema yüzeyleri */
+  --bg-page: #f4f5f8;
   --bg-surface: #ffffff;
-  --bg-surface-alt: #f8fafc;
-  --bg-hover: #eef2f8;
-  --bg-subtle: #eef1f6;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --text-primary: #10192b;
-  --text-secondary: #4a5872;
-  --text-muted: #8593ab;
+  --bg-surface-alt: #f8f9fb;
+  --bg-hover: #eef1f7;
+  --bg-subtle: #f2f2f2;
+  --border: #e3e6ee;
+  --border-strong: #c9cfdc;
+  --text-primary: #222433;
+  --text-secondary: #555b6e;
+  --text-muted: #8a90a2;
+  --heading: var(--subu-navy);
 
-  --primary: #1d4e89;
-  --primary-hover: #163e6d;
-  --primary-tint: #e7eff8;
-  --success: #157347;
-  --success-tint: #e3f5ea;
+  --primary: #056db0;
+  --primary-hover: #04588f;
+  --primary-tint: #e6f1f9;
+  --accent: var(--subu-green);
+  --accent-hover: var(--subu-green-dark);
+  --success: #178a43;
+  --success-tint: #e4f5ea;
   --warning: #9a6400;
   --warning-tint: #fdf1dc;
-  --danger: #b3261e;
-  --danger-tint: #fbe7e6;
-  --info: #0d6b8f;
-  --info-tint: #e2f3f8;
-  --neutral-tint: #edf0f5;
+  --danger: #c0392b;
+  --danger-tint: #fbe8e6;
+  --info: #00887a;
+  --info-tint: #e0f3f1;
+  --neutral-tint: #edeff4;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  --header-bg: #ffffff;
+  --nav-bg: var(--subu-royal);
+  --nav-bg-active: var(--subu-royal-dark);
+  --hero-bg: #f2f2f2;
+  --footer-bg: #1f225c;
+  --footer-bottom-bg: #171a48;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
   --radius-full: 999px;
 
-  --shadow-sm: 0 1px 2px rgba(16,25,43,0.06);
-  --shadow-md: 0 6px 16px rgba(16,25,43,0.08);
-  --shadow-lg: 0 16px 40px rgba(16,25,43,0.14);
+  --shadow-sm: 0 1px 2px rgba(20, 24, 70, 0.06);
+  --shadow-md: 0 6px 18px rgba(20, 24, 70, 0.08);
+  --shadow-lg: 0 18px 44px rgba(20, 24, 70, 0.16);
 
-  --sidebar-width: 264px;
-  --topbar-height: 64px;
+  --container: 1200px;
+  --topbar-height: 36px;
   --transition-fast: 150ms ease;
   --transition-base: 220ms ease;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "Open Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  --font-heading: "Raleway", "Segoe UI", "Open Sans", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, monospace;
 }
 
 :root[data-theme="dark"] {
-  --bg-page: #0a111e;
-  --bg-surface: #111a2c;
-  --bg-surface-alt: #16213a;
-  --bg-hover: #1a2740;
-  --bg-subtle: #172038;
-  --border: #24334f;
-  --border-strong: #34486d;
-  --text-primary: #e7ecf5;
-  --text-secondary: #a4b1c9;
-  --text-muted: #6d7c99;
+  --bg-page: #0c0f24;
+  --bg-surface: #14183a;
+  --bg-surface-alt: #191e45;
+  --bg-hover: #1e2452;
+  --bg-subtle: #171b40;
+  --border: #272d5e;
+  --border-strong: #37407a;
+  --text-primary: #e8eaf6;
+  --text-secondary: #aab0cf;
+  --text-muted: #737aa3;
+  --heading: #c9ceff;
 
-  --primary: #4f86c6;
-  --primary-hover: #6ea0da;
-  --primary-tint: rgba(79,134,198,0.16);
-  --success: #3fb476;
-  --success-tint: rgba(63,180,118,0.16);
-  --warning: #d9a441;
-  --warning-tint: rgba(217,164,65,0.16);
-  --danger: #e2685f;
-  --danger-tint: rgba(226,104,95,0.16);
-  --info: #4bb2d6;
-  --info-tint: rgba(75,178,214,0.16);
-  --neutral-tint: rgba(164,177,201,0.12);
+  --primary: #3d9be0;
+  --primary-hover: #62b0ea;
+  --primary-tint: rgba(61, 155, 224, 0.16);
+  --success: #3fbf74;
+  --success-tint: rgba(63, 191, 116, 0.16);
+  --warning: #e0ac4a;
+  --warning-tint: rgba(224, 172, 74, 0.16);
+  --danger: #ea6b5e;
+  --danger-tint: rgba(234, 107, 94, 0.16);
+  --info: #35c2b1;
+  --info-tint: rgba(53, 194, 177, 0.16);
+  --neutral-tint: rgba(170, 176, 207, 0.12);
 
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-  --shadow-md: 0 6px 16px rgba(0,0,0,0.35);
-  --shadow-lg: 0 16px 40px rgba(0,0,0,0.5);
+  --header-bg: #10132e;
+  --nav-bg: #161d8a;
+  --nav-bg-active: #0f156a;
+  --hero-bg: #111533;
+  --footer-bg: #171b45;
+  --footer-bottom-bg: #11143a;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.55);
 }

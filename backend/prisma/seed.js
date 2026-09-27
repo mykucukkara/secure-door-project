@@ -23,13 +23,14 @@ async function ensureUser({ ad, soyad, eposta, rol, birimId, password, pin }) {
         ...(existing.pinHash ? {} : {
           pinHash,
           pinSonDegisim: new Date(),
-          pinGecerlilikBitis: new Date(Date.now() + 24 * 60 * 60 * 1000)
+          pinGecerlilikBitis: null
         })
       }
     });
   }
 
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  // Kapı şifreleri kalıcıdır (süresi dolmaz).
+  const expiresAt = null;
   return prisma.$transaction(async (transaction) => {
     const user = await transaction.kullanici.create({
       data: {
