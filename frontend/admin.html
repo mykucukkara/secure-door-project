@@ -155,12 +155,52 @@
   </div>
 </div>
 
+<!-- Kapı şifresini değiştir (yönetici) -->
+<div class="modal-backdrop" id="pinEditModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pinEditModalTitle">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="pinEditModalTitle">Kapı Şifresini Değiştir</div>
+        <div class="modal-subtitle" id="pinEditModalSubtitle"></div>
+      </div>
+      <button type="button" class="modal-close" data-modal-close aria-label="Kapat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <form id="pinEditForm" novalidate>
+      <div class="modal-body">
+        <div id="pinEditAlert" role="alert"></div>
+        <div class="form-row">
+          <div class="field">
+            <label class="field-label" for="adminYeniPin">Yeni kapı şifresi</label>
+            <input class="form-control pin-input" type="password" id="adminYeniPin" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]{6}" placeholder="••••••">
+          </div>
+          <div class="field">
+            <label class="field-label" for="adminYeniPinTekrar">Yeni şifre (tekrar)</label>
+            <input class="form-control pin-input" type="password" id="adminYeniPinTekrar" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]{6}" placeholder="••••••">
+          </div>
+        </div>
+        <ul class="hint-list">
+          <li>Şifre tam olarak <strong>6 rakamdan</strong> oluşur; 111111, 123456 gibi şifreler kabul edilmez.</li>
+          <li>Kullanıcının eski kapı şifresi kaydettiğiniz anda geçersiz olur.</li>
+          <li>Şifre belirlemek istemiyorsanız <strong>Rastgele Oluştur</strong> ile sistem üretsin.</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Vazgeç</button>
+        <button type="button" class="btn btn-secondary" id="pinEditRandomBtn">Rastgele Oluştur</button>
+        <button type="submit" class="btn btn-primary" id="pinEditSubmit">Şifreyi Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- PIN yenile reveal modal -->
 <div class="modal-backdrop" id="pinRevealModal">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pinRevealModalTitle">
     <div class="modal-header">
       <div>
-        <div class="modal-title" id="pinRevealModalTitle">Kapı Şifresi Yenilendi</div>
+        <div class="modal-title" id="pinRevealModalTitle">Kapı Şifresi Güncellendi</div>
         <div class="modal-subtitle" id="pinRevealModalSubtitle">Yeni kapı şifresi kullanıcıya iletilmelidir.</div>
       </div>
       <button type="button" class="modal-close" data-modal-close aria-label="Kapat">
@@ -197,6 +237,6 @@
 <script src="assets/js/theme.js?v=20260927-1" defer></script>
 <script src="assets/js/nav.js?v=20260927-1" defer></script>
 <script src="assets/js/ui.js?v=20260927-1" defer></script>
-<script src="assets/js/admin.js?v=20260927-1" defer></script>
+<script src="assets/js/admin.js?v=20260928-1" defer></script>
 </body>
 </html>

@@ -16,7 +16,8 @@
     me: null,
     users: [],
     search: '',
-    editingId: null
+    editingId: null,
+    pinUserId: null
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -104,7 +105,7 @@
       if (!self && u.eposta && u.durum === 'aktif') {
         actions += iconBtn('temp', u.kullaniciId, 'Yeni geçici şifre gönder', ICON.mail);
       }
-      actions += iconBtn('pin', u.kullaniciId, 'Kapı şifresini yenile', ICON.pin);
+      actions += iconBtn('pin', u.kullaniciId, 'Kapı şifresini değiştir', ICON.pin);
       if (!self) actions += iconBtn('delete', u.kullaniciId, 'Sil / Pasife al', ICON.trash, 'icon-btn-danger');
 
       return '<tr>' +
@@ -123,7 +124,7 @@
       '<thead><tr><th>Ad Soyad</th><th>E-posta</th><th>Rol</th><th>Durum</th><th>Son Giriş</th><th>İşlemler</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>';
 
-    var handlers = { edit: openEditModal, temp: sendTemporaryPassword, pin: renewPin, delete: deleteUser };
+    var handlers = { edit: openEditModal, temp: sendTemporaryPassword, pin: openPinModal, delete: deleteUser };
     container.querySelectorAll('[data-action]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var fn = handlers[btn.getAttribute('data-action')];
@@ -152,10 +153,20 @@
   /* ---------------- Düzenleme ---------------- */
 
   function wireModals() {
-    ['userModal', 'credentialsModal', 'pinRevealModal'].forEach(function (id) {
+    ['userModal', 'credentialsModal', 'pinEditModal', 'pinRevealModal'].forEach(function (id) {
       UI.wireModalDismiss(document.getElementById(id));
     });
     document.getElementById('userForm').addEventListener('submit', submitUserForm);
+    document.getElementById('pinEditForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      savePin(false);
+    });
+    document.getElementById('pinEditRandomBtn').addEventListener('click', function () { savePin(true); });
+    ['adminYeniPin', 'adminYeniPinTekrar'].forEach(function (id) {
+      document.getElementById(id).addEventListener('input', function (e) {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+      });
+    });
     UI.wireCopyButton(document.getElementById('copyPinRevealBtn'), function () {
       return document.getElementById('pinRevealValue').textContent;
     });
@@ -280,23 +291,75 @@
 
   /* ---------------- Kapı şifresi ---------------- */
 
-  async function renewPin(id) {
-    var u = findUser(id);
-    var label = u ? ((u.ad || '') + ' ' + (u.soyad || '')) : ('#' + id);
+  function setPinAlert(message, type) {
+    var el = document.getElementById('pinEditAlert');
+    if (!message) { el.innerHTML = ''; return; }
+    el.innerHTML = '<div class="alert alert-' + (type || 'error') + '"><div class="alert-body">' + UI.escapeHtml(message) + '</div></div>';
+  }
 
-    if (!window.confirm(label + ' için yeni bir kapı şifresi oluşturulacak. Kullanıcının mevcut kapı şifresi hemen geçersiz olur. Devam edilsin mi?')) return;
+  function userLabel(id) {
+    var u = findUser(id);
+    return u ? ((u.ad || '') + ' ' + (u.soyad || '')).trim() : ('#' + id);
+  }
+
+  function openPinModal(id) {
+    state.pinUserId = id;
+    document.getElementById('pinEditForm').reset();
+    setPinAlert('');
+    document.getElementById('pinEditModalSubtitle').textContent = userLabel(id);
+    UI.openModal(document.getElementById('pinEditModal'));
+    setTimeout(function () { document.getElementById('adminYeniPin').focus(); }, 50);
+  }
+
+  async function savePin(random) {
+    var id = state.pinUserId;
+    if (!id) return;
+    var label = userLabel(id);
+    var body;
+
+    if (random) {
+      if (!window.confirm(label + ' için rastgele yeni bir kapı şifresi oluşturulacak. Mevcut şifre hemen geçersiz olur. Devam edilsin mi?')) return;
+      body = { rastgele: true };
+    } else {
+      var pin = document.getElementById('adminYeniPin').value.trim();
+      var pinTekrar = document.getElementById('adminYeniPinTekrar').value.trim();
+      if (!/^\d{6}$/.test(pin)) {
+        setPinAlert('Kapı şifresi tam olarak 6 rakamdan oluşmalıdır.', 'error');
+        return;
+      }
+      if (pin !== pinTekrar) {
+        setPinAlert('Girilen şifreler birbiriyle eşleşmiyor.', 'error');
+        return;
+      }
+      body = { pin: pin, pinTekrar: pinTekrar };
+    }
+
+    var submitBtn = document.getElementById('pinEditSubmit');
+    var randomBtn = document.getElementById('pinEditRandomBtn');
+    submitBtn.disabled = true;
+    randomBtn.disabled = true;
+    setPinAlert('');
 
     try {
-      var res = await API.apiRequest('/api/kullanicilar/' + encodeURIComponent(id) + '/sifre-yenile', { method: 'POST' });
+      var res = await API.apiRequest('/api/kullanicilar/' + encodeURIComponent(id) + '/kapi-sifresi', { method: 'PUT', body: body });
       var veri = res.veri || {};
-      document.getElementById('pinRevealModalSubtitle').textContent = label + ' için yeni kapı şifresi oluşturuldu.';
+      UI.closeModal(document.getElementById('pinEditModal'));
+      document.getElementById('pinEditForm').reset();
+
+      document.getElementById('pinRevealModalSubtitle').textContent = label + ' için yeni kapı şifresi kaydedildi.';
       setText('pinRevealValue', veri.yeniPin || '—');
       setText('pinRevealValidity', veri.gecerlilikBitis ? UI.formatDate(veri.gecerlilikBitis) : 'Süresiz');
-      document.getElementById('pinRevealDevices').innerHTML = '';
+      var cihazlar = Array.isArray(veri.cihazlar) ? veri.cihazlar.filter(function (c) { return c && !c.hata; }) : [];
+      document.getElementById('pinRevealDevices').innerHTML = '<div class="text-meta">' + (cihazlar.length
+        ? 'Güncel şifre listesi ' + cihazlar.length + ' aktif kapı cihazı için hazırlandı; bağlı cihazlar hemen alır.'
+        : 'Aktif kapı cihazı bulunamadı; şifre cihazlar bağlandığında geçerli olacak.') + '</div>';
       UI.openModal(document.getElementById('pinRevealModal'));
-      UI.toast(res.mesaj || 'Kapı şifresi yenilendi.', 'success');
+      UI.toast(res.mesaj || 'Kapı şifresi güncellendi.', 'success');
     } catch (err) {
-      UI.toast(err.message || 'Kapı şifresi yenilenemedi.', 'error');
+      setPinAlert(err.message || 'Kapı şifresi güncellenemedi.', 'error');
+    } finally {
+      submitBtn.disabled = false;
+      randomBtn.disabled = false;
     }
   }
 

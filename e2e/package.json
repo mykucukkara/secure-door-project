@@ -1,0 +1,13 @@
+{
+  "name": "securelab-e2e",
+  "private": true,
+  "description": "SecureLab web paneli ve API icin uctan uca (tarayici) testleri",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "rapor": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

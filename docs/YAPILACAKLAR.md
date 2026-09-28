@@ -13,10 +13,10 @@ Kod incelemesine dayalı eksiklik listesi. Öncelik sırasına göre bölümlere
 
 ## Bölüm 2 — Kimlik Doğrulama (Auth)
 
-- [ ] Backend'e `/api/auth/login` (ve gerekirse `/logout`, `/me`) endpoint'i ekle.
-- [ ] Şifre/PIN doğrulama + oturum yönetimi (JWT ya da session) kur.
-- [ ] Admin'e özel route'ları (kullanıcı/kart/kapı yönetimi vb.) auth middleware ile koru.
-- [ ] `frontend/login.html`'i gerçek login endpoint'ine bağla, token/session saklama akışını ekle.
+- [x] `/api/auth/login` ve `/api/auth/me` eklendi (e-posta + web şifresi; kapı PIN'i ile web girişi kapalı).
+- [x] JWT oturumu; rol/durum/şifre değişiminde oturum sürümü artırılarak eski tokenlar geçersiz olur.
+- [x] Yönetici route'ları `requireAdmin`, kişisel route'lar `requireSelfOrAdmin` ile korunuyor (e2e testlerinde 401/403 doğrulanıyor).
+- [x] `login.html` gerçek uç noktaya bağlı; ilk girişte zorunlu şifre değişimi (`sifre-degistir.html`).
 
 ## Bölüm 3 — Eksik CRUD Endpoint'leri
 
@@ -29,7 +29,7 @@ Kod incelemesine dayalı eksiklik listesi. Öncelik sırasına göre bölümlere
 - [x] Gruplar: `POST /api/gruplar`, `PUT /api/gruplar/:id`, `DELETE /api/gruplar/:id`, üye ekleme `POST /api/gruplar/:id/uyeler`, üye çıkarma `DELETE /api/gruplar/:id/uyeler/:kullaniciId` eklendi.
 - [x] Yetki Kuralları: `backend/src/routes/yetkiKurallari.js` yeni oluşturuldu (`GET`, `GET/:id`, `POST`, `PUT`, `DELETE`), `/api/yetki-kurallari` olarak `index.js`'e bağlandı.
 - [x] İhlal Kayıtları: `POST /api/ihlal-kayitlari` (manuel ihlal kaydı açma) eklendi.
-- [ ] Yukarıdaki yeni endpoint'lerin tamamı Docker üzerinde `curl` ile (create/update/delete senaryolarıyla) test edilmeli — şu ana kadar sadece syntax doğrulaması yapıldı.
+- [x] Kullanıcı, kapı ve cihaz CRUD uç noktaları Jest entegrasyon testleriyle (gerçek PostgreSQL) doğrulanıyor — `backend/src/tests/*.crud.test.js`.
 - [ ] `DELETE` endpoint'leri, ilişkili kayıt varsa (FK hatası) 409 dönüyor ve kullanıcıyı "durumu pasif/iptal yap" demeye yönlendiriyor — gerçek admin panelinde bu akışın (soft-delete) UI tarafında da desteklenmesi gerekecek (bkz. Bölüm 5).
 
 ## Bölüm 4 — Bağlanmamış Servisleri Devreye Alma

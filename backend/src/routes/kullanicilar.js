@@ -390,10 +390,15 @@ router.put('/:id/kapi-sifresi', requireSelfOrAdmin, async (req, res) => {
       action: 'guncelle',
       tableName: 'kapi_sifre_gecmisi',
       recordId: req.params.id,
-      after: { pin: rastgele ? 'rastgele_guncellendi' : 'kullanici_belirledi' }
+      after: {
+        pin: rastgele ? 'rastgele_guncellendi' : (isSelf ? 'kullanici_belirledi' : 'yonetici_belirledi'),
+        degistiren: isSelf ? 'kendisi' : 'yonetici'
+      }
     });
     return res.json({
-      mesaj: 'Kapı şifreniz güncellendi. Yeni şifre hemen geçerlidir ve süresi dolmaz.',
+      mesaj: isSelf
+        ? 'Kapı şifreniz güncellendi. Yeni şifre hemen geçerlidir ve süresi dolmaz.'
+        : 'Kullanıcının kapı şifresi güncellendi. Eski şifre artık geçersizdir; yeni şifreyi kullanıcıya iletin.',
       veri: result
     });
   } catch (error) {

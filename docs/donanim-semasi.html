@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>SecureDoor – Donanım Bağlantı Şeması</title>
+<style>
+  :root{ --ink:#1a1a1a; --mut:#5f5e5a; --bd:#b4b2a9; --bg:#ffffff; --card:#faf9f5;
+         --warn:#FAEEDA; --warnbd:#BA7517; --warntx:#633806; }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px;background:var(--bg);color:var(--ink);
+       font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6}
+  .wrap{max-width:900px;margin:0 auto}
+  h1{font-size:22px;font-weight:500;margin:0 0 4px}
+  h2{font-size:16px;font-weight:500;margin:36px 0 10px}
+  p.sub{color:var(--mut);font-size:14px;margin:0 0 24px}
+  svg{width:100%;height:auto;display:block}
+  .card{border:1px solid var(--bd);border-radius:8px;padding:16px;background:var(--card);margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .note{font-size:13px;color:var(--mut);margin:8px 0 0}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{border:1px solid var(--bd);padding:6px 8px;text-align:left}
+  th{background:var(--card);font-weight:500}
+  .w{background:var(--warn);color:var(--warntx)}
+  @media print{body{padding:0}.card{break-inside:avoid}}
+  @media (max-width:760px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>SecureDoor – ESP32 donanım bağlantı şeması</h1>
+<p class="sub">Kaynak: <code>esp32-kodlar/include/config.h</code> + firmware kaynak kodu. Kart: ESP32 DevKit v1.</p>
+
+<div class="card">
+<svg viewBox="0 0 900 620" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <g stroke="#888780" stroke-width="1.5">
+    <line x1="280" y1="112" x2="330" y2="112"/>
+    <line x1="280" y1="216" x2="330" y2="216"/>
+    <line x1="280" y1="310" x2="330" y2="310"/>
+    <line x1="280" y1="414" x2="330" y2="414"/>
+    <line x1="570" y1="112" x2="620" y2="112"/>
+    <line x1="570" y1="216" x2="620" y2="216"/>
+    <line x1="570" y1="318" x2="620" y2="318"/>
+    <line x1="570" y1="422" x2="620" y2="422"/>
+    <line x1="450" y1="462" x2="450" y2="492"/>
+  </g>
+  <g font-size="11" fill="#5f5e5a" text-anchor="middle">
+    <text x="305" y="104">SPI</text><text x="305" y="208">I2C</text>
+    <text x="305" y="302">I2C</text><text x="305" y="406">GPIO</text>
+  </g>
+
+  <rect x="330" y="60" width="240" height="402" rx="6" fill="#f1efe8" stroke="#5f5e5a" stroke-width="1.5"/>
+  <text x="450" y="92" text-anchor="middle" font-size="16" font-weight="500" fill="#1a1a1a">ESP32 DevKit v1</text>
+  <g font-size="13" fill="#444441" text-anchor="middle">
+    <text x="450" y="114">esp32dev · Arduino · 115200 baud</text>
+    <text x="450" y="168">3V3 rayı → MFRC522, DS3231,</text>
+    <text x="450" y="188">RGB ortak anot, buzzer, 10k pull-up</text>
+    <text x="450" y="214">VIN ← 5 V regülatör çıkışı</text>
+    <text x="450" y="272">Bağlanmayan / yasak pinler</text>
+  </g>
+  <g font-size="13" fill="#5f5e5a" text-anchor="middle">
+    <text x="450" y="294">GPIO 6–11 → dahili flash, dokunma</text>
+    <text x="450" y="314">GPIO 1, 3 → UART0 (seri monitör)</text>
+    <text x="450" y="334">GPIO 0 → SD_CS tanımlı, kullanılmıyor</text>
+    <text x="450" y="354">GPIO 34 → KEYPAD_COL_4, kullanılmıyor</text>
+    <text x="450" y="408">Çevrimdışı kuyruk: LittleFS</text>
+    <text x="450" y="428">(/olaylar.bin) — SD kart YOK</text>
+  </g>
+
+  <g stroke="#888780" stroke-width="1.2" fill="#ffffff">
+    <rect x="40" y="60" width="240" height="104" rx="6"/>
+    <rect x="40" y="178" width="240" height="82" rx="6"/>
+    <rect x="40" y="274" width="240" height="82" rx="6"/>
+    <rect x="40" y="370" width="240" height="104" rx="6"/>
+    <rect x="620" y="370" width="240" height="82" rx="6"/>
+  </g>
+  <g stroke="#BA7517" stroke-width="1.2" fill="#FAEEDA">
+    <rect x="620" y="60" width="240" height="104" rx="6"/>
+    <rect x="620" y="178" width="240" height="82" rx="6"/>
+    <rect x="620" y="274" width="240" height="82" rx="6"/>
+  </g>
+
+  <g font-size="15" font-weight="500" fill="#1a1a1a">
+    <text x="56" y="86">MFRC522 RFID</text>
+    <text x="56" y="204">LCD 16x2 (PCF8574)</text>
+    <text x="56" y="300">DS3231 RTC</text>
+    <text x="56" y="396">Keypad 4x3 membran</text>
+    <text x="636" y="396">Pasif buzzer</text>
+  </g>
+  <g font-size="15" font-weight="500" fill="#633806">
+    <text x="636" y="86">Röle modülü + 12 V kilit</text>
+    <text x="636" y="204">Reed (kapı) sensörü</text>
+    <text x="636" y="300">RGB LED – ortak ANOT</text>
+  </g>
+
+  <g font-size="13" fill="#444441">
+    <text x="56" y="108">SDA/SS → GPIO5 · SCK → GPIO18</text>
+    <text x="56" y="128">MOSI → GPIO23 · MISO → GPIO19</text>
+    <text x="56" y="148">RST → GPIO22 · VCC → 3.3 V (5 V yasak)</text>
+
+    <text x="56" y="226">SDA → GPIO21 · SCL → GPIO17</text>
+    <text x="56" y="246">VCC → 5 V · adres otomatik taranır</text>
+
+    <text x="56" y="322">SDA → GPIO21 · SCL → GPIO17</text>
+    <text x="56" y="342">VCC → 3.3 V · CR2032 pil · SQW boş</text>
+
+    <text x="56" y="418">Satır 1–4 → GPIO 4, 16, 32, 33</text>
+    <text x="56" y="438">Sütun 1–3 → GPIO 15, 12, 2</text>
+    <text x="56" y="458">GPIO12'ye harici pull-up KOYMAYIN</text>
+
+    <text x="636" y="418">I/O → GPIO14 (LEDC PWM, 2–4 kHz)</text>
+    <text x="636" y="438">Boşta HIGH · aktif LOW</text>
+  </g>
+  <g font-size="13" fill="#633806">
+    <text x="636" y="108">IN → GPIO27, OUTPUT_OPEN_DRAIN</text>
+    <text x="636" y="128">LOW = pasif · HIGH (serbest) = çeker</text>
+    <text x="636" y="148">VCC → 5 V · COM = +12 V · NO → kilit</text>
+
+    <text x="636" y="226">GPIO35 + 10 kΩ pull-up → 3.3 V</text>
+    <text x="636" y="246">LOW = kapı KAPALI · HIGH = AÇIK</text>
+
+    <text x="636" y="322">Kırmızı → 25 · Yeşil → 26 · Mavi → 13</text>
+    <text x="636" y="342">Ortak anot → 3.3 V · 220 Ω seri · LOW = yanar</text>
+  </g>
+
+  <rect x="40" y="492" width="820" height="96" rx="6" fill="#ffffff" stroke="#888780" stroke-width="1.2"/>
+  <text x="56" y="518" font-size="15" font-weight="500" fill="#1a1a1a">Güç dağıtımı ve ortak GND</text>
+  <g font-size="13" fill="#444441">
+    <text x="56" y="540">12 V adaptör → L7805 / DC-DC buck → 5 V rayı: ESP32 VIN, LCD backpack VCC, röle modülü VCC</text>
+    <text x="56" y="560">12 V doğrudan röle COM'a; röle NO → kilit (+); kilit (−) → 12 V GND; kilit uçlarına 1N4007 flyback</text>
+    <text x="56" y="580">Tüm GND'ler TEK noktada birleşmeli: adaptör, regülatör, ESP32, röle, RFID, LCD, RTC, buzzer, reed</text>
+  </g>
+</svg>
+<p class="note">Turuncu kutular: ters mantık ya da harici bileşen gerektiren, en çok karıştırılan bağlantılar.</p>
+</div>
+
+<h2>Kritik detay devreleri</h2>
+<div class="grid">
+
+<div class="card">
+<svg viewBox="0 0 420 250" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <text x="10" y="20" font-size="14" font-weight="500" fill="#1a1a1a">1 · Reed sensör – GPIO35 pull-up</text>
+  <g stroke="#1a1a1a" stroke-width="1.5" fill="none">
+    <line x1="60" y1="55" x2="200" y2="55"/>
+    <line x1="200" y1="55" x2="200" y2="80"/>
+    <rect x="188" y="80" width="24" height="50"/>
+    <line x1="200" y1="130" x2="200" y2="165"/>
+    <line x1="200" y1="150" x2="330" y2="150"/>
+    <line x1="200" y1="165" x2="200" y2="185"/>
+    <line x1="186" y1="185" x2="214" y2="200"/>
+    <line x1="214" y1="185" x2="214" y2="202"/>
+    <line x1="200" y1="202" x2="200" y2="220"/>
+    <line x1="180" y1="220" x2="220" y2="220"/>
+    <line x1="187" y1="228" x2="213" y2="228"/>
+    <line x1="193" y1="235" x2="207" y2="235"/>
+  </g>
+  <circle cx="200" cy="150" r="3.5" fill="#1a1a1a"/>
+  <text x="10" y="59" font-size="12" fill="#444441">+3.3 V</text>
+  <text x="222" y="110" font-size="12" fill="#444441">10 kΩ</text>
+  <text x="222" y="196" font-size="12" fill="#444441">reed</text>
+  <text x="338" y="154" font-size="12" fill="#444441">GPIO35</text>
+  <text x="10" y="238" font-size="12" fill="#5f5e5a">GND</text>
+</svg>
+<p class="note">GPIO35 giriş-only, dahili pull-up <b>yok</b>. Mıknatıs yakınken reed kapanır, hat GND'ye iner → <code>LOW = kapı kapalı</code>. Direnç olmazsa hat floating kalır ve alarm rastgele çalar.</p>
+</div>
+
+<div class="card">
+<svg viewBox="0 0 420 250" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <text x="10" y="20" font-size="14" font-weight="500" fill="#1a1a1a">2 · RGB LED – ortak anot, aktif LOW</text>
+  <g stroke="#1a1a1a" stroke-width="1.5" fill="none">
+    <line x1="60" y1="50" x2="360" y2="50"/>
+    <line x1="120" y1="50" x2="120" y2="80"/><line x1="220" y1="50" x2="220" y2="80"/><line x1="320" y1="50" x2="320" y2="80"/>
+    <path d="M108 80 L132 80 L120 102 Z"/><line x1="108" y1="102" x2="132" y2="102"/>
+    <path d="M208 80 L232 80 L220 102 Z"/><line x1="208" y1="102" x2="232" y2="102"/>
+    <path d="M308 80 L332 80 L320 102 Z"/><line x1="308" y1="102" x2="332" y2="102"/>
+    <line x1="120" y1="102" x2="120" y2="130"/><line x1="220" y1="102" x2="220" y2="130"/><line x1="320" y1="102" x2="320" y2="130"/>
+    <rect x="108" y="130" width="24" height="46"/><rect x="208" y="130" width="24" height="46"/><rect x="308" y="130" width="24" height="46"/>
+    <line x1="120" y1="176" x2="120" y2="205"/><line x1="220" y1="176" x2="220" y2="205"/><line x1="320" y1="176" x2="320" y2="205"/>
+  </g>
+  <circle cx="120" cy="50" r="3.5" fill="#1a1a1a"/><circle cx="220" cy="50" r="3.5" fill="#1a1a1a"/>
+  <text x="10" y="54" font-size="12" fill="#444441">+3.3 V (ortak anot)</text>
+  <g font-size="12" fill="#444441" text-anchor="middle">
+    <text x="120" y="196" font-size="11">220 Ω</text><text x="220" y="196" font-size="11">220 Ω</text><text x="320" y="196" font-size="11">220 Ω</text>
+    <text x="120" y="222">GPIO25</text><text x="220" y="222">GPIO26</text><text x="320" y="222">GPIO13</text>
+    <text x="120" y="240" font-size="11">kırmızı</text><text x="220" y="240" font-size="11">yeşil</text><text x="320" y="240" font-size="11">mavi</text>
+  </g>
+</svg>
+<p class="note">Kodda üç <code>activeHigh</code> bayrağı da <code>false</code>: LED'i yakmak için pin <b>LOW</b> yapılır. Ortak katot bir LED takarsanız mantık ters döner.</p>
+</div>
+
+<div class="card">
+<svg viewBox="0 0 420 250" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <text x="10" y="20" font-size="14" font-weight="500" fill="#1a1a1a">3 · Röle IN – açık kollektör (open-drain)</text>
+  <g stroke="#1a1a1a" stroke-width="1.5" fill="none">
+    <rect x="150" y="45" width="230" height="120" rx="4" stroke-dasharray="4 3" stroke="#888780"/>
+    <line x1="220" y1="75" x2="220" y2="95"/>
+    <rect x="208" y="95" width="24" height="40"/>
+    <line x1="220" y1="135" x2="220" y2="150"/>
+    <line x1="60" y1="150" x2="220" y2="150"/>
+    <line x1="220" y1="150" x2="300" y2="150"/>
+  </g>
+  <circle cx="220" cy="150" r="3.5" fill="#1a1a1a"/>
+  <text x="160" y="70" font-size="11" fill="#5f5e5a">röle modülü (5 V)</text>
+  <text x="238" y="80" font-size="12" fill="#444441">+5 V</text>
+  <text x="240" y="120" font-size="12" fill="#444441">dahili pull-up</text>
+  <text x="306" y="154" font-size="12" fill="#444441">opto-kuplör → röle</text>
+  <text x="10" y="145" font-size="12" fill="#444441">GPIO27</text>
+  <text x="10" y="163" font-size="11" fill="#5f5e5a">open-drain</text>
+  <g font-size="12" fill="#444441">
+    <text x="20" y="200">LOW  → ESP32 hattı GND'ye çeker → röle PASİF</text>
+    <text x="20" y="220">HIGH → ESP32 hattı bırakır → 5 V pull-up → röle ÇEKER</text>
+    <text x="20" y="240" fill="#5f5e5a">Darbe 2000 ms, ardından 1000 ms cooldown</text>
+  </g>
+</svg>
+<p class="note">ESP32 röleyi sürmez, hattı serbest bırakır. Bu sayede 3.3 V'luk MCU, 5 V lojikli röle kartını seviye çevirici olmadan tetikler. Röle VCC 5 V değilse hiç çekmez.</p>
+</div>
+
+<div class="card">
+<svg viewBox="0 0 420 250" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <text x="10" y="20" font-size="14" font-weight="500" fill="#1a1a1a">4 · Kilit güç devresi (kuru kontak)</text>
+  <g stroke="#1a1a1a" stroke-width="1.5" fill="none">
+    <line x1="40" y1="60" x2="150" y2="60"/>
+    <line x1="150" y1="60" x2="150" y2="80"/>
+    <circle cx="150" cy="84" r="4"/>
+    <line x1="154" y1="80" x2="215" y2="58"/>
+    <circle cx="220" cy="56" r="4"/>
+    <line x1="220" y1="52" x2="220" y2="40"/>
+    <line x1="220" y1="40" x2="300" y2="40"/>
+    <line x1="300" y1="40" x2="300" y2="95"/>
+    <rect x="276" y="95" width="48" height="50"/>
+    <line x1="300" y1="145" x2="300" y2="185"/>
+    <line x1="40" y1="185" x2="300" y2="185"/>
+    <line x1="360" y1="95" x2="360" y2="145"/>
+    <line x1="300" y1="105" x2="360" y2="105"/>
+    <line x1="300" y1="135" x2="360" y2="135"/>
+    <path d="M348 118 L372 118 L360 100 Z"/>
+    <line x1="348" y1="100" x2="372" y2="100"/>
+  </g>
+  <circle cx="300" cy="105" r="3.5" fill="#1a1a1a"/><circle cx="300" cy="135" r="3.5" fill="#1a1a1a"/>
+  <text x="10" y="64" font-size="12" fill="#444441">+12 V</text>
+  <text x="10" y="180" font-size="12" fill="#444441">12 V GND</text>
+  <text x="118" y="102" font-size="12" fill="#444441">COM</text>
+  <text x="216" y="34" font-size="12" fill="#444441">NO</text>
+  <text x="228" y="126" font-size="12" fill="#444441">kilit bobini</text>
+  <text x="380" y="122" font-size="12" fill="#444441">1N4007</text>
+  <text x="20" y="215" font-size="12" fill="#5f5e5a">Fail-secure kilit → NO kontağı. Yangın çıkışı gibi</text>
+  <text x="20" y="233" font-size="12" fill="#5f5e5a">fail-safe uygulamada NC kontağı kullanılır.</text>
+</svg>
+<p class="note">Flyback diyot (1N4007) kilit bobinine <b>ters paralel</b> bağlanır, katot +12 V tarafına bakar. Olmazsa röle kontakları kıvılcım yapar ve ESP32 sürekli resetlenir.</p>
+</div>
+
+</div>
+
+<h2>Tam pin haritası</h2>
+<table>
+<tr><th>GPIO</th><th>Malzeme</th><th>Malzeme pini</th><th>Not</th></tr>
+<tr><td>2</td><td>Keypad</td><td>Sütun 3</td><td>INPUT_PULLUP · strapping · onboard LED</td></tr>
+<tr><td>4</td><td>Keypad</td><td>Satır 1</td><td>Tarama sırasında LOW</td></tr>
+<tr><td>5</td><td>MFRC522</td><td>SDA / SS</td><td>CS, aktif LOW</td></tr>
+<tr class="w"><td>12</td><td>Keypad</td><td>Sütun 2</td><td>Strapping (MTDI) – harici pull-up YASAK</td></tr>
+<tr><td>13</td><td>RGB LED</td><td>Mavi katot</td><td>LOW = yanar</td></tr>
+<tr><td>14</td><td>Buzzer</td><td>I/O</td><td>LEDC PWM, boşta HIGH</td></tr>
+<tr><td>15</td><td>Keypad</td><td>Sütun 1</td><td>INPUT_PULLUP · strapping (MTDO)</td></tr>
+<tr><td>16</td><td>Keypad</td><td>Satır 2</td><td>—</td></tr>
+<tr><td>17</td><td>LCD + DS3231</td><td>SCL</td><td>I2C @ 50 kHz (varsayılan 22 değil)</td></tr>
+<tr><td>18</td><td>MFRC522</td><td>SCK</td><td>VSPI</td></tr>
+<tr><td>19</td><td>MFRC522</td><td>MISO</td><td>VSPI</td></tr>
+<tr><td>21</td><td>LCD + DS3231</td><td>SDA</td><td>I2C @ 50 kHz</td></tr>
+<tr><td>22</td><td>MFRC522</td><td>RST</td><td>Donanım reset</td></tr>
+<tr><td>23</td><td>MFRC522</td><td>MOSI</td><td>VSPI</td></tr>
+<tr><td>25</td><td>RGB LED</td><td>Kırmızı katot</td><td>LOW = yanar</td></tr>
+<tr><td>26</td><td>RGB LED</td><td>Yeşil katot</td><td>LOW = yanar</td></tr>
+<tr class="w"><td>27</td><td>Röle modülü</td><td>IN</td><td>OPEN-DRAIN: LOW=pasif, HIGH=çeker</td></tr>
+<tr><td>32</td><td>Keypad</td><td>Satır 3</td><td>—</td></tr>
+<tr><td>33</td><td>Keypad</td><td>Satır 4</td><td>—</td></tr>
+<tr><td>34</td><td>—</td><td>—</td><td>KEYPAD_COL_4 tanımlı, kod kullanmıyor</td></tr>
+<tr class="w"><td>35</td><td>Reed sensör</td><td>Bir uç</td><td>Giriş-only · 10 kΩ harici pull-up ŞART · LOW=kapalı</td></tr>
+<tr><td>0</td><td>—</td><td>—</td><td>SD_CS tanımlı ama SD kullanılmıyor (LittleFS)</td></tr>
+<tr><td>3V3</td><td>RFID, DS3231, RGB anot, buzzer, 10k</td><td>VCC</td><td>—</td></tr>
+<tr><td>VIN</td><td>5 V regülatör</td><td>—</td><td>LCD ve röle de bu 5 V rayından</td></tr>
+<tr><td>GND</td><td>Tümü</td><td>GND</td><td>Tek ortak nokta</td></tr>
+</table>
+
+</div>
+</body>
+</html>

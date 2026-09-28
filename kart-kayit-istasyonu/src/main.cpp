@@ -119,8 +119,18 @@ bool initReader() {
     if (readerOnline) {
         Serial.printf("[OK]   RC522 okuyucu hazir (VersionReg=0x%02X)\n", version);
     } else {
-        Serial.printf("[HATA] RC522 okuyucu bulunamadi (VersionReg=0x%02X)\n", version);
-        Serial.println("       3.3V/GND ve SPI kablolarini (SS=5, SCK=18, MOSI=23, MISO=19, RST=22) kontrol edin.");
+        Serial.printf("[HATA] RC522 SPI yaniti gecersiz (VersionReg=0x%02X)\n", version);
+        if (version == 0x00) {
+            Serial.println("       0x00 genellikle okuyucudan SPI yaniti gelmedigini gosterir.");
+            Serial.println("       Ozellikle MISO->GPIO19, SS/SDA->GPIO5 ve RST->GPIO22 hatlarini kontrol edin.");
+        } else if (version == 0xFF) {
+            Serial.println("       0xFF genellikle MISO hattinin bos/yuksek kaldigini gosterir.");
+            Serial.println("       MISO->GPIO19, ortak GND ve SS/SDA->GPIO5 baglantilarini kontrol edin.");
+        } else {
+            Serial.println("       Okuyucu modeli/klonu veya SPI hatlari beklenmeyen yanit veriyor.");
+        }
+        Serial.println("       RC522: 3.3V->3V3, GND->GND, SDA/SS->GPIO5, SCK->GPIO18,");
+        Serial.println("              MOSI->GPIO23, MISO->GPIO19, RST->GPIO22 (IRQ bos).");
     }
     return readerOnline;
 }
@@ -153,6 +163,8 @@ void printBanner() {
     printLine('=');
     Serial.println("  Karti okuyucuya yaklastirin. UID asagida gorunecek.");
     Serial.println("  Web paneli > Kart Kayit sayfasi bu ciktiyi otomatik okuyabilir.");
+    Serial.println("  RC522: 3V3, GND, SDA/SS=5, SCK=18, MOSI=23, MISO=19, RST=22");
+    Serial.println("  Not: RC522 SDA pini SPI'da SS/CS'dir; I2C SDA degildir. 5V kullanmayin.");
     Serial.println("  Komutlar: i = bilgi, h = yardim");
     printLine('=');
 }

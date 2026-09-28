@@ -288,7 +288,7 @@ async function setUserPin(kullaniciId, { pin, kaynak = 'kullanici' } = {}) {
 
     const current = await readActivePin(userId);
     if (current.pin && current.pin === newPin) {
-      throw new PinPolicyError('Yeni kapı şifresi mevcut şifrenizle aynı olamaz.');
+      throw new PinPolicyError('Yeni kapı şifresi mevcut kapı şifresiyle aynı olamaz.');
     }
     if (await isPinInUse(newPin, userId)) {
       throw new PinPolicyError('Bu kapı şifresi kullanılamıyor. Lütfen farklı bir şifre seçin.', 409);

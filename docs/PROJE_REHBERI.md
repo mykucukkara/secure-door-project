@@ -676,6 +676,8 @@ PostgreSQL 5432 portu canlı ortamda dış dünyaya açılmamalıdır. Mevcut Co
 - `SEED_BOLUM_BASKANI_EPOSTA`
 
 Web girişinde e-posta ve web parolası kullanılır. Web parolası ile kapı PIN'i aynı şey değildir.
+Başlangıç hesaplarının tam listesi ve ilk şifreleri ana [README](../README.md#4-hesaplar-ve-ilk-şifreler) dosyasındadır;
+herkes ilk girişte `sifre-degistir.html` sayfasında kendi şifresini belirlemek zorundadır.
 
 ### 14.2 Roller
 
@@ -685,7 +687,8 @@ Web girişinde e-posta ve web parolası kullanılır. Web parolası ile kapı PI
 | `hoca` | Panel, giriş geçmişi, kendi PIN işlemleri ve izin verilen görüntüleme işlemleri |
 | `sistem` | Sistem içi kayıtlar için ayrılmış rol |
 
-Seed işlemi yalnız `.env` ile tanımlanan tek yönetici hesabını korur. Başka admin kayıtları varsa onları `hoca` rolüne indirir.
+Birden fazla yönetici olabilir (başlangıçta sistem yöneticisi ve bölüm başkanı). Yönetici yetkisi **Kullanıcılar** sayfasında
+düzenleme penceresinden verilir/kaldırılır. Son aktif yönetici silinemez ve kimse kendi rolünü değiştiremez.
 
 ### 14.3 Sayfalar
 
@@ -694,11 +697,10 @@ Oturum açılan tüm sayfalar SUBÜ Bilgisayar Mühendisliği sitesinin düzenin
 | Sayfa | Görev |
 |---|---|
 | `index.html` | Anasayfa: sistem özeti, son erişimler ve hızlı erişim |
-| `admin.html` | Kullanıcı yönetimi; yalnız admin |
+| `admin.html` | Kullanıcı yönetimi: düzenleme, yeni geçici şifre gönderme, **başka kullanıcının kapı şifresini değiştirme** (anahtar simgesi: 6 haneli şifre yaz ya da Rastgele Oluştur), silme/pasife alma; yalnız admin |
 | `yetkilendirme.html` | Kart Yetkilendirme: UID gir (ya da USB istasyondan al), kartın sahibini seç, yetkilendir; onay bekleyen ve tanımlı kartlar; yalnız admin |
 | `kullanici-ekle.html` | Bölüm sitesinde olup hesabı olmayanlara hesap açma, geçici şifreyi e-postayla gönderme; yalnız admin |
 | `sifre-degistir.html` | Geçici şifreyle ilk girişte zorunlu şifre belirleme |
-| `yetkilendirme.html` | Kapıda okutulan bekleyen kartları onaylama ve kart yetkilerini açıp kapatma |
 | `gecmis-girisler.html` | Kart/şifre giriş geçmişi |
 | `ariza-gecmisi.html` | Arıza bildirimlerini görüntüleme ve yönetme |
 | `qr-kod.html` | Öğrenci arıza formunun QR kodu |
@@ -715,7 +717,8 @@ Projede hazır akademik personel içe aktarma betiği vardır:
 docker compose exec backend npm run import:academic-staff
 ```
 
-Bu işlem kayıtları `hoca` rolüyle ekler veya günceller. Bu kullanıcıların kart atama listesinde görünmesini sağlar. Betik yeni kullanıcıya otomatik web parolası vermediği için web girişi gerekiyorsa ayrıca parola tanımlanmalıdır.
+Bu işlem eksik kadro kayıtlarını `hoca` rolüyle ve `SEED_HOCA_PASSWORD` ilk şifresiyle ekler; var olan hesaplara dokunmaz.
+Tek tek eklemek için panelde **Kullanıcı Ekle** sayfası kullanılır (geçici şifre e-postayla gönderilir).
 
 ---
 
@@ -1117,15 +1120,17 @@ Prisma şeması temel olarak şunları saklar:
 - Denetim kayıtları
 - Çevrimdışı liste sürümleri
 
-İlk başlatmada seed işlemi:
+Her başlatmada `prisma/seed.js` çalışır:
 
 1. Bilgisayar Mühendisliği birimini oluşturur.
-2. `.env` ile belirtilen yönetici hesabını oluşturur/günceller.
-3. Diğer admin hesaplarını hoca rolüne çevirir.
-4. Laboratuvar kapısını oluşturur.
-5. `ESP32-LAB-001` cihazını oluşturur.
-6. Cihazı laboratuvar kapısına atar.
-7. İlk cihaz durum kaydını oluşturur.
+2. Sistem yöneticisi hesabını (`SEED_ADMIN_EMAIL`, şifre `SEED_ADMIN_PASSWORD`) yoksa oluşturur.
+3. Bölüm başkanını (`SEED_BOLUM_BASKANI_EPOSTA`) yönetici olarak yoksa oluşturur.
+4. **Yalnızca veritabanında hiç kullanıcı yokken** bölüm akademik kadrosunun tamamını öğretim elemanı olarak açar
+   (şifre `SEED_HOCA_PASSWORD`). Sonradan eklemek için `docker compose exec backend npm run import:academic-staff`.
+5. Laboratuvar kapısını, `ESP32-LAB-001` cihazını, cihaz-kapı atamasını ve ilk cihaz durum kaydını oluşturur.
+
+Var olan hesaplara dokunulmaz. Tüm başlangıç hesapları ilk girişte şifre değiştirmek zorundadır.
+Hesap listesi ve ilk şifreler: ana [README — Hesaplar ve ilk şifreler](../README.md#4-hesaplar-ve-ilk-şifreler).
 
 ### Veritabanı yedeği
 
@@ -1179,8 +1184,8 @@ docker compose logs --tail=200 frontend
 git status
 git add DOSYALAR
 git commit -m "Yapılan değişikliğin kısa açıklaması"
-git pull --rebase upstream main
-git push upstream main
+git pull --rebase origin main
+git push origin main
 ```
 
 Gerçek şifre içeren dosyaları eklemeyin:

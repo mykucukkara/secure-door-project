@@ -81,4 +81,38 @@ describe('Profil kapı şifresi uç noktaları', () => {
     expect(res.status).toBe(409);
     expect(res.body.hata).toMatch(/kullanılamıyor/);
   });
+
+  test('yönetici başka bir kullanıcının kapı şifresini belirleyebilir', async () => {
+    const token = tokenFor(1, 'admin');
+    pinService.setUserPin.mockResolvedValue({ yeniPin: '582047', kalici: true });
+    const res = await request(app)
+      .put('/api/kullanicilar/8/kapi-sifresi')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ pin: '582047', pinTekrar: '582047' });
+    expect(res.status).toBe(200);
+    expect(pinService.setUserPin).toHaveBeenCalledWith('8', { pin: '582047', kaynak: 'yonetici' });
+    expect(res.body.mesaj).toMatch(/Kullanıcının kapı şifresi/);
+  });
+
+  test('yönetici başka bir kullanıcıya rastgele kapı şifresi verebilir', async () => {
+    const token = tokenFor(1, 'admin');
+    pinService.setUserPin.mockResolvedValue({ yeniPin: '730218', kalici: true });
+    const res = await request(app)
+      .put('/api/kullanicilar/8/kapi-sifresi')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ rastgele: true });
+    expect(res.status).toBe(200);
+    expect(pinService.setUserPin).toHaveBeenCalledWith('8', { pin: undefined, kaynak: 'yonetici' });
+    expect(res.body.veri.yeniPin).toBe('730218');
+  });
+
+  test('öğretim elemanı başkasının kapı şifresini değiştiremez', async () => {
+    const token = tokenFor(7);
+    const res = await request(app)
+      .put('/api/kullanicilar/8/kapi-sifresi')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ pin: '582047', pinTekrar: '582047' });
+    expect(res.status).toBe(403);
+    expect(pinService.setUserPin).not.toHaveBeenCalled();
+  });
 });

@@ -53,11 +53,12 @@ UID:04:A1:B2:C3
 
 ## Web panelinden kart tanımlama
 
-1. Web panelinde yönetici hesabıyla giriş yapın ve **Kart Yetkilendirme** sayfasını açın.
+1. Web panelinde yönetici hesabıyla giriş yapın (başlangıç hesapları için ana [README](../README.md#4-hesaplar-ve-ilk-şifreler)) ve **Kart Yetkilendirme** sayfasını açın.
 2. **İstasyona Bağlan** düğmesine basıp listeden ESP32'nin COM portunu seçin
    (Chrome veya Edge gerekir; sayfa `http://localhost` üzerinden açılmalıdır).
 3. Kartı okutun, UID alanı otomatik dolar.
-4. Kullanıcıyı seçip **Kartı Tanımla** düğmesine basın.
+4. Kartın sahibini ad-soyad listesinden seçip **Kartı Yetkilendir** düğmesine basın.
+5. Kart aynı sayfadaki listede görünür; kapıda okutulduğunda sahibinin adıyla erişim kaydı oluşur.
 
 > Web Serial kullanırken PlatformIO seri monitörünü kapatın; aynı COM portunu
 > aynı anda yalnızca bir program kullanabilir.

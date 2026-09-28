@@ -76,14 +76,14 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-true}
-      MQTT_BROKER_URL: ${MQTT_BROKER_URL}
+      MQTT_BROKER_URL: ${MQTT_BROKER_URL:-}
       # Backend Docker icinden "mqtt" servis adini, ESP32 ise disaridan
       # sunucunun 10.9.2.50 adresini kullanir; ikisi ayni broker'dir.
       MQTT_BROKER_HOST: ${MQTT_BROKER_HOST:-mqtt}
       MQTT_BROKER_PORT: ${MQTT_BROKER_PORT:-1883}
-      MQTT_USERNAME: ${MQTT_USERNAME}
-      MQTT_PASSWORD: ${MQTT_PASSWORD}
-      FIRMWARE_PUBLIC_BASE_URL: ${FIRMWARE_PUBLIC_BASE_URL}
+      MQTT_USERNAME: ${MQTT_USERNAME:-}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      FIRMWARE_PUBLIC_BASE_URL: ${FIRMWARE_PUBLIC_BASE_URL:-}
       FIRMWARE_STORAGE_DIR: /app/firmware
       OTA_SIGNING_SECRET: ${OTA_SIGNING_SECRET:-securelab-development-ota-secret}
       OTA_URL_TTL_SECONDS: ${OTA_URL_TTL_SECONDS:-900}

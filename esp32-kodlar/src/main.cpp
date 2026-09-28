@@ -65,6 +65,8 @@ static constexpr uint32_t DOOR_SENSOR_DEBOUNCE_MS = 500;
 static uint32_t doorOpenedAtMs = 0;
 static bool doorOpenAlarmActive = false;
 static constexpr uint32_t DOOR_OPEN_ALARM_DELAY_MS = 20000;
+static constexpr uint32_t DOOR_OPEN_ALARM_BUZZER_MS = 10000; // Alarm buzzer'i en fazla 10 sn calar
+static uint32_t doorOpenAlarmStartedAtMs = 0;
 static Durum lastLcdWorkflowState = Durum::ALARM;
 static bool lastAccessFailureWasConnection = false;
 static bool rtcSyncedFromNtp = false;
@@ -260,9 +262,15 @@ static void updateDoorOpenAlarm() {
 
     if (lastDoorPhysicallyOpen && !doorOpenAlarmActive && millis() - doorOpenedAtMs >= DOOR_OPEN_ALARM_DELAY_MS) {
         doorOpenAlarmActive = true;
+        doorOpenAlarmStartedAtMs = millis();
         alertSystem.playDoorOpenTooLong();
         lcdDisplay.showAlarm();
         return;
+    }
+
+    // Buzzer 10 sn sonra susar; kapi kapanana kadar LCD alarmi ve OTA kilidi surer.
+    if (doorOpenAlarmActive && millis() - doorOpenAlarmStartedAtMs >= DOOR_OPEN_ALARM_BUZZER_MS) {
+        alertSystem.stop(AlertPattern::DoorOpenTooLong);
     }
 
     if (!lastDoorPhysicallyOpen && doorOpenAlarmActive) {

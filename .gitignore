@@ -146,3 +146,9 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# SecureLab: yerel arsivler ve araç önbellekleri
+*.zip
+!esp32-kodlar/kaynaklar.zip
+.understand-anything/
+frontend/vendor/
