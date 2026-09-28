@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm ci
+RUN npm cache clean --force && npm install --no-audit --no-fund
 
 ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dummy_db?schema=public"
 RUN npx prisma generate

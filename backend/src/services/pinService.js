@@ -81,7 +81,7 @@ async function generateOfflineListForDevice(cihazId, rawPinsByUserId = new Map()
 
   const eligibleUsers = await getEligibleUsersForDoor(assignment.kapiId);
   const deviceSecret = process.env.ESP32_SECRET_KEY || 'securelab-device-development-key';
-  const expiresAt = new Date(Date.now() + 26 * 60 * 60 * 1000);
+  const expiresAt = null;// süre sınırı yok
   const list = [];
 
   for (const { user, rule } of eligibleUsers) {
@@ -128,7 +128,7 @@ async function generateOfflineListForDevice(cihazId, rawPinsByUserId = new Map()
 async function refreshAllUsersPins() {
   const users = await prisma.kullanici.findMany({ where: { durum: 'aktif' } });
   const rawPinsByUserId = new Map();
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const expiresAt = null; // süre sınırı yok
 
   for (const user of users) {
     const pin = generateRandomPin();
@@ -169,7 +169,7 @@ async function refreshSingleUserPin(kullaniciId) {
   }
 
   const newPin = generateRandomPin();
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const expiresAt = null;
   const pinHash = await argon2.hash(newPin);
   await prisma.$transaction(async (transaction) => {
     await transaction.kullanici.update({

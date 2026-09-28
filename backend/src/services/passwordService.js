@@ -29,7 +29,7 @@ class PasswordService {
         const payload = {
           cihazId: cihaz.cihazId,
           pin: yeniSifre,
-          gecerlilikBitis: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 saat geçerli
+          gecerlilikBitis: null 
         };
 
         // MQTT üzerinden cihaza publish et
@@ -48,7 +48,7 @@ class PasswordService {
     const payload = {
       cihazId: parseInt(cihazId, 10),
       pin: yeniSifre,
-      gecerlilikBitis: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      gecerlilikBitis: null 
     };
 
     mqttService.publishCommand(cihazId, 'sifre-guncelleme', payload);
