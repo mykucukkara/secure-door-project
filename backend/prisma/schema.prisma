@@ -22,6 +22,8 @@ enum KullaniciRol {
   hoca
   admin
   sistem
+  yetkili_ogrenci
+  idari_personel
 }
 
 enum KartDurum {
