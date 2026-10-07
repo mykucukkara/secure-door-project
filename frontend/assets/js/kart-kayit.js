@@ -337,6 +337,18 @@
   }
 
   async function connect() {
+    // --- GÜVENLİK KONTROLÜ BAŞLANGICI ---
+    if (!window.isSecureContext) {
+        alert("Hata: Kart okuyucuya bağlanmak için sitenin HTTPS veya localhost üzerinden açılması zorunludur.");
+        console.error("Hata: Güvenli Bağlam (Secure Context) yok.");
+        return;
+    } else if (!('serial' in navigator)) {
+        alert("Hata: Tarayıcınız Seri Port (Web Serial API) iletişimini desteklemiyor veya engelliyor.");
+        console.error("Hata: Web Serial API desteklenmiyor.");
+        return;
+    }
+    // --- GÜVENLİK KONTROLÜ BİTİŞİ ---
+
     var btn = document.getElementById('stationConnectBtn');
     try {
       var port = await navigator.serial.requestPort();
