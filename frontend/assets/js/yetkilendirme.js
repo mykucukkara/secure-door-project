@@ -52,97 +52,9 @@
       timer = setTimeout(renderPermissions, 150);
     });
 
-    // Web Serial API (USB Masaüstü Kart Kayıt İstasyonu) Entegrasyonu
-    initWebSerialStation();
-
     loadPending();
     loadPermissions();
     startPolling();
-  }
-
-  function initWebSerialStation() {
-    var connectBtn = document.getElementById('stationConnectBtn');
-    if (!connectBtn) return;
-
-    if (!('serial' in navigator)) {
-      var alertBox = document.getElementById('serialSupportAlert');
-      if (alertBox) {
-        alertBox.innerHTML = '<div class="security-note" style="margin-bottom: 20px;">⚠️ Tarayıcınız Web Serial API desteklemiyor. Lütfen Google Chrome veya Microsoft Edge kullanın.</div>';
-      }
-      connectBtn.disabled = true;
-      return;
-    }
-
-    connectBtn.addEventListener('click', async function () {
-      // --- GÜVENLİK KONTROLÜ BAŞLANGICI ---
-      if (!window.isSecureContext) {
-          alert("Hata: Kart okuyucuya bağlanmak için sitenin HTTPS veya localhost üzerinden açılması zorunludur.");
-          console.error("Hata: Güvenli Bağlam (Secure Context) yok.");
-          return;
-      } else if (!('serial' in navigator)) {
-          alert("Hata: Tarayıcınız Seri Port (Web Serial API) iletişimini desteklemiyor veya engelliyor.");
-          console.error("Hata: Web Serial API desteklenmiyor.");
-          return;
-      }
-      // --- GÜVENLİK KONTROLÜ BİTİŞİ ---
-
-      try {
-        var port = await navigator.serial.requestPort();
-        await port.open({ baudRate: 115200 });
-        
-        document.getElementById('stationStatus').textContent = 'İstasyon bağlı';
-        document.getElementById('stationConnectText').textContent = 'Bağlı';
-        connectBtn.classList.add('btn-danger');
-
-        var textDecoder = new TextDecoderStream();
-        port.readable.pipeTo(textDecoder.writable);
-        var reader = textDecoder.readable.getReader();
-        var buffer = '';
-
-        while (true) {
-          var res = await reader.read();
-          if (res.done) break;
-          
-          buffer += res.value;
-          var lines = buffer.split('\n');
-          buffer = lines.pop();
-
-          for (var i = 0; i < lines.length; i++) {
-            var cleanLine = lines[i].trim();
-            if (cleanLine) {
-              var serialLog = document.getElementById('serialLog');
-              if (serialLog) {
-                if (serialLog.textContent === 'Bağlantı bekleniyor…') serialLog.textContent = '';
-                serialLog.innerHTML += '<div>> ' + UI.escapeHtml(cleanLine) + '</div>';
-                serialLog.scrollTop = serialLog.scrollHeight;
-              }
-            }
-            
-            if (cleanLine.indexOf('UID:') === 0) {
-              var uid = cleanLine.replace('UID:', '').trim();
-              var kartUidInput = document.getElementById('kartUid');
-              var uidDisplayValue = document.getElementById('uidDisplayValue');
-              var kartSubmit = document.getElementById('kartSubmit');
-
-              if (kartUidInput) {
-                kartUidInput.value = uid;
-                kartUidInput.dispatchEvent(new Event('input', { bubbles: true }));
-              }
-              if (uidDisplayValue) uidDisplayValue.textContent = uid;
-              if (kartSubmit) kartSubmit.disabled = false;
-
-              if (window.KartForm && typeof window.KartForm.setUid === 'function') {
-                window.KartForm.setUid(uid, 'station');
-              }
-            }
-          }
-        }
-      } catch (err) {
-        if (err.name !== 'NotFoundError') {
-          console.error('İstasyon bağlantı hatası:', err);
-        }
-      }
-    });
   }
 
   function startPolling() {

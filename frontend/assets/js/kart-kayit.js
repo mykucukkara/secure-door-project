@@ -1,8 +1,10 @@
 /* SecureLab — Kart Yetkilendirme formu (yetkilendirme.html içinde)
    ESP32 + RC522 istasyonu seri porta "UID:04:A1:B2:C3" satırı yazar.
    Chrome/Edge'deki Web Serial API ile istasyona bağlanıp bu satırı okur,
-   UID'yi kullanıcıya atar (POST /api/kartlar/onayla). Web Serial yoksa UID
-   elle girilebilir. */
+   UID'yi kullanıcıya atar (POST /api/kartlar/onayla). Panel HTTP üzerinden
+   açıldığında Web Serial kullanılamaz; istasyonun takılı olduğu bilgisayardaki
+   köprü programı UID'yi sunucuya iletir, sayfa /api/istasyon/durum'u sorgular.
+   İkisi de yoksa UID elle girilebilir. */
 (function () {
   'use strict';
 
@@ -22,8 +24,14 @@
     port: null,
     reader: null,
     keepReading: false,
-    logLines: []
+    logLines: [],
+    kopruSira: null,    // köprüden alınan son okumanın sıra numarası
+    kopruTimer: null,
+    kopruUyariGosterildi: false
   };
+
+  // Köprü (kart-kayit-istasyonu/kopru) sorgulama aralığı.
+  var KOPRU_POLL_MS = 1500;
 
   /**
    * Kart Yetkilendirme sayfası (yetkilendirme.html) oturum kontrolünü yaptıktan
@@ -33,6 +41,7 @@
     state.onSaved = (opts && opts.onSaved) || null;
     wireForm();
     wireStation();
+    startBridge();
     loadUsers();
     loadRecentCards();
   }
@@ -305,15 +314,9 @@
   function wireStation() {
     var btn = document.getElementById('stationConnectBtn');
     if (!serialSupported()) {
-      btn.disabled = true;
-      setStationStatus('Tarayıcı desteklemiyor', 'error');
-      document.getElementById('serialSupportAlert').innerHTML =
-        '<div class="alert alert-warning mb-md"><div class="alert-body">' +
-        'Bu tarayıcı istasyona doğrudan bağlanmayı (Web Serial) desteklemiyor. ' +
-        '<strong>Chrome</strong> veya <strong>Edge</strong> ile <strong>http://localhost</strong> adresinden açın ' +
-        'ya da seri monitördeki UID\'yi aşağıdaki alana yapıştırın.' +
-        '</div></div>';
-      document.getElementById('serialLog').textContent = 'Web Serial kullanılamıyor.';
+      // Panel HTTP üzerinden açıldığında tarayıcı USB'ye erişemez; istasyon
+      // köprü programı üzerinden gelir (startBridge). Doğrudan bağlan düğmesi gizlenir.
+      btn.hidden = true;
       return;
     }
 
@@ -328,6 +331,74 @@
         cleanupConnection();
       }
     });
+  }
+
+  /* ---------------- Köprü: istasyon başka programla sunucuya bağlı ---------------- */
+
+  function startBridge() {
+    pollBridge();
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        clearTimeout(state.kopruTimer);
+        state.kopruTimer = null;
+      } else if (!state.kopruTimer) {
+        pollBridge();
+      }
+    });
+  }
+
+  async function pollBridge() {
+    clearTimeout(state.kopruTimer);
+    try {
+      var path = '/api/istasyon/durum' + (state.kopruSira == null ? '' : '?sonra=' + state.kopruSira);
+      var res = await API.apiRequest(path);
+      if (state.kopruSira == null) {
+        // İlk sorgu: sayfa açılmadan önceki okumaları forma yazma.
+        state.kopruSira = res.sira;
+      } else if (res.kart) {
+        state.kopruSira = res.kart.sira;
+        appendLog('▶ UID:' + res.kart.uid + '  (' + res.kart.kopru + ')', true);
+        setUid(res.kart.uid, 'serial');
+      }
+      renderBridgeStatus(res);
+    } catch (err) {
+      // Geçici ağ hatalarında sessizce yeniden dene.
+    }
+    if (!document.hidden) state.kopruTimer = setTimeout(pollBridge, KOPRU_POLL_MS);
+  }
+
+  function renderBridgeStatus(res) {
+    if (state.port) return; // Web Serial ile doğrudan bağlıysa onun durumu gösterilir.
+    var kopruler = res.kopruler || [];
+    var bagli = kopruler.filter(function (k) { return k.istasyonBagli; });
+    var alertBox = document.getElementById('serialSupportAlert');
+
+    if (bagli.length) {
+      setStationStatus('İstasyon bağlı · ' + bagli.map(function (k) { return k.ad; }).join(', '), 'ok');
+      alertBox.innerHTML = '';
+      if (!state.kopruUyariGosterildi) {
+        state.kopruUyariGosterildi = true;
+        appendLog('● İstasyon köprüsü bağlı (' + bagli.map(function (k) { return k.ad + ' ' + (k.port || ''); }).join(', ') + '). Kartı okutun.');
+      }
+      return;
+    }
+    state.kopruUyariGosterildi = false;
+    if (kopruler.length) {
+      setStationStatus('İstasyon takılı değil', 'error');
+      alertBox.innerHTML = '';
+      return;
+    }
+    setStationStatus('İstasyon bağlı değil');
+    if (!serialSupported()) {
+      alertBox.innerHTML =
+        '<div class="alert alert-info mb-md"><div class="alert-body">' +
+        (res.yapilandirildi
+          ? 'İstasyonun takılı olduğu bilgisayarda <strong>istasyon köprüsü</strong> çalışmıyor. ' +
+            'Köprü kuruluysa bilgisayarı yeniden başlatın; kurulu değilse <code>kart-kayit-istasyonu/kopru/kur.cmd</code> ile bir kez kurun. '
+          : 'İstasyon köprüsü sunucuda yapılandırılmamış (<code>ISTASYON_ANAHTARI</code>). ') +
+        'Bu sırada seri ekrandaki UID\'yi aşağıdaki alana elle yazabilirsiniz.' +
+        '</div></div>';
+    }
   }
 
   function setStationStatus(text, kind) {

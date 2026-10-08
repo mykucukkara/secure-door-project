@@ -99,10 +99,10 @@
           <details class="card-box station-details">
             <summary class="card-box-title">Kart kayıt istasyonu (USB) · nasıl kullanılır?</summary>
             <ol class="step-list mt-md">
-              <li><span>İstasyonu USB ile bu bilgisayara takın ve <strong>İstasyona Bağlan</strong>'a basın (Chrome / Edge).</span></li>
-              <li><span>Listeden ESP32'nin portunu seçin (ör. <em>COM5</em>, <em>CP210x</em>, <em>CH340</em>).</span></li>
-              <li><span>Kartı okuyucuya yaklaştırın; UID forma kendiliğinden yazılır.</span></li>
-              <li><span>İstasyon başka bir bilgisayardaysa, seri ekranda görünen <code>UID:…</code> değerini forma elle yazın.</span></li>
+              <li><span>İstasyonu, <strong>istasyon köprüsü</strong> kurulu bir bilgisayara USB ile takın. Köprü istasyonu kendiliğinden bulur; üstte <em>İstasyon bağlı</em> yazar.</span></li>
+              <li><span>Kartı okuyucuya yaklaştırın; UID forma kendiliğinden yazılır. Panel hangi bilgisayardan açılırsa açılsın çalışır.</span></li>
+              <li><span>Köprü bir kez kurulur: <code>kart-kayit-istasyonu/kopru/kur.cmd</code> (Windows açılışında kendiliğinden başlar).</span></li>
+              <li><span>Köprü yoksa seri ekranda görünen <code>UID:…</code> değerini forma elle yazın.</span></li>
             </ol>
             <div class="form-section-title mt-md">İstasyon çıktısı</div>
             <div class="serial-log" id="serialLog" aria-live="off">Bağlantı bekleniyor…</div>

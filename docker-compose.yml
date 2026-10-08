@@ -69,6 +69,7 @@ services:
       ALLOW_DEV_PASSWORD_RESET: ${ALLOW_DEV_PASSWORD_RESET:-true}
       # Boş bırakılırsa APP_BASE_URL + /sifre-sifirla.html kullanılır.
       PASSWORD_RESET_BASE_URL: ${PASSWORD_RESET_BASE_URL:-}
+      ISTASYON_ANAHTARI: ${ISTASYON_ANAHTARI:-}
       PUBLIC_ISSUE_URL: ${PUBLIC_ISSUE_URL:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

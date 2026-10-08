@@ -38,6 +38,7 @@ const yetkiKuraliRotalari = require('./routes/yetkiKurallari');
 const authRotalari = require('./routes/authRoutes');
 const firmwareRotalari = require('./routes/firmware');
 const publicRotalari = require('./routes/publicRoutes');
+const istasyonRotalari = require('./routes/istasyon');
 
 const arizaRotalari = require('./routes/arizalar');
 
@@ -122,6 +123,7 @@ app.use('/api/birimler', birimRotalari);
 app.use('/api/kullanicilar', kullaniciRotalari);
 
 app.use('/api/kartlar', kartRotalari);
+app.use('/api/istasyon', istasyonRotalari);
 app.use('/api/kart-yetkilendirmeler', kartYetkilendirmeRotalari);
 app.use('/api/kapilar', kapiRotalari);
 app.use('/api/cihazlar', cihazRotalari);

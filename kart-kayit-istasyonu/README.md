@@ -51,11 +51,28 @@ UID:04:A1:B2:C3
 - Kart okuyucu üzerinde bekletilirse tekrar tekrar yazılmaz; çekip yeniden okutun.
 - Seri monitörde `i` yazıp Enter'a basarsanız istasyon durumu, `h` ile yardım görüntülenir.
 
+## İstasyon köprüsü (panel sunucudan açılıyorsa)
+
+Tarayıcılar USB'ye (Web Serial) yalnızca HTTPS veya `localhost` sayfalarından erişebilir.
+Panel `http://10.9.2.50` gibi bir adresten açılıyorsa istasyonun takılı olduğu Windows
+bilgisayarda **köprü** çalışır: istasyonu kendiliğinden bulur, okunan UID'yi sunucuya iletir;
+Kart Yetkilendirme sayfası UID'yi forma yazar ("İstasyon bağlı · BİLGİSAYAR-ADI").
+
+1. Sunucudaki `.env` dosyasında `ISTASYON_ANAHTARI` tanımlı olmalıdır (en az 16 karakter,
+   `openssl rand -hex 24`). Değiştirince `docker compose up -d backend`.
+2. Bilgisayarda `kopru\kur.cmd` dosyasına çift tıklayın; sunucu adresini ve anahtarı girin.
+   Ek program gerekmez (Windows PowerShell), yönetici yetkisi istemez.
+3. Köprü Windows açılışında gizlice başlar. İstasyonu takın, kartı okutun.
+
+- Kurulum yeri: `%LOCALAPPDATA%\SecureLabKopru` (kayıtlar `kopru.log`).
+- Kaldırmak için `kopru\kaldir.cmd`.
+- Köprü COM portunu tuttuğu için o bilgisayarda seri monitör/Web Serial aynı anda kullanılamaz.
+
 ## Web panelinden kart tanımlama
 
 1. Web panelinde yönetici hesabıyla giriş yapın (başlangıç hesapları için ana [README](../README.md#4-hesaplar-ve-ilk-şifreler)) ve **Kart Yetkilendirme** sayfasını açın.
-2. **İstasyona Bağlan** düğmesine basıp listeden ESP32'nin COM portunu seçin
-   (Chrome veya Edge gerekir; sayfa `http://localhost` üzerinden açılmalıdır).
+2. Köprü kuruluysa üstte **İstasyon bağlı** yazar; 3. adıma geçin. Sayfa `http://localhost`
+   üzerinden açıldıysa **İstasyona Bağlan** düğmesine basıp ESP32'nin COM portunu da seçebilirsiniz (Chrome/Edge).
 3. Kartı okutun, UID alanı otomatik dolar.
 4. Kartın sahibini ad-soyad listesinden seçip **Kartı Yetkilendir** düğmesine basın.
 5. Kart aynı sayfadaki listede görünür; kapıda okutulduğunda sahibinin adıyla erişim kaydı oluşur.
