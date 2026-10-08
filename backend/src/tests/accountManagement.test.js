@@ -223,6 +223,42 @@ describe('Hesap açma, zorunlu şifre değişimi ve yönetici kuralları', () =>
     expect(demote.statusCode).toBe(200);
   });
 
+  test('idari personel rolüyle hesap açılabilmeli ve hoca ile aynı panel yetkisine sahip olmalı', async () => {
+    const res = await request(app)
+      .post('/api/kullanicilar')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ ad: 'İdari', soyad: 'Personel', eposta: `idari_${stamp}@subu.edu.tr`, rol: 'idari_personel' });
+    expect(res.statusCode).toBe(201);
+    expect(res.body.kullanici.rol).toBe('idari_personel');
+
+    const stored = await prisma.kullanici.findUnique({ where: { kullaniciId: BigInt(res.body.kullanici.kullaniciId) } });
+    // Zorunlu şifre değişimi kilidini atlayıp doğrudan rol yetkilerini sına.
+    await prisma.kullanici.update({ where: { kullaniciId: stored.kullaniciId }, data: { sifreDegistirmeZorunlu: false } });
+    const idariToken = signFor(stored);
+
+    const okuma = await request(app).get('/api/kapilar').set('Authorization', `Bearer ${idariToken}`);
+    expect(okuma.statusCode).toBe(200);
+
+    // Yönetici olmayanlar yalnızca kendi erişim kayıtlarını görmeli.
+    const kayitlar = await request(app).get('/api/erisim-kayitlari').set('Authorization', `Bearer ${idariToken}`);
+    expect(kayitlar.statusCode).toBe(200);
+    expect(Array.isArray(kayitlar.body)).toBe(true);
+    kayitlar.body.forEach((k) => expect(String(k.kullaniciId)).toBe(String(stored.kullaniciId)));
+
+    const yazma = await request(app)
+      .post('/api/kullanicilar')
+      .set('Authorization', `Bearer ${idariToken}`)
+      .send({ ad: 'Yetkisiz', soyad: 'İdari', eposta: `idari_blocked_${stamp}@subu.edu.tr` });
+    expect(yazma.statusCode).toBe(403);
+
+    const rolDegisimi = await request(app)
+      .put(`/api/kullanicilar/${createdUser.kullaniciId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ rol: 'idari_personel' });
+    expect(rolDegisimi.statusCode).toBe(200);
+    expect(rolDegisimi.body.rol).toBe('idari_personel');
+  });
+
   test('admin standart kullanıcıyı silebilmeli (geçmiş kaydı varsa pasife alınır)', async () => {
     const res = await request(app)
       .delete(`/api/kullanicilar/${createdUser.kullaniciId}`)

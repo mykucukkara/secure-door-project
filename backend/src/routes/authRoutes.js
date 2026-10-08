@@ -110,8 +110,9 @@ router.post('/forgot-password', async (req, res) => {
     const { rawToken, expiresAt } = await createPasswordReset(user.kullaniciId, req.ip);
     const inferredFrontend = `${req.protocol}://${req.get('host') || 'localhost:8080'}`
       .replace(/:3000$/, ':8080');
+    const appBase = String(process.env.APP_BASE_URL || '').trim().replace(/\/+$/, '');
     const resetPage = process.env.PASSWORD_RESET_BASE_URL
-      || `${inferredFrontend}/sifre-sifirla.html`;
+      || `${appBase || inferredFrontend}/sifre-sifirla.html`;
     const resetUrl = `${resetPage}${resetPage.includes('?') ? '&' : '?'}token=${encodeURIComponent(rawToken)}`;
 
     if (isMailConfigured()) {

@@ -133,11 +133,11 @@ router.get('/aday-hocalar', requireAdmin, async (req, res) => {
 router.post('/', requireAdmin, async (req, res) => {
   try {
     const { ad, soyad, unvan, eposta, birimId, rol } = req.body || {};
-    if (rol && rol !== 'hoca') {
-      return res.status(400).json({ hata: 'Yeni hesaplar öğretim elemanı rolüyle açılır; yönetici yetkisi daha sonra düzenleme ekranından verilir.' });
+    if (rol && !['hoca', 'idari_personel'].includes(rol)) {
+      return res.status(400).json({ hata: 'Yeni hesaplar öğretim elemanı veya idari personel rolüyle açılır; yönetici yetkisi daha sonra düzenleme ekranından verilir.' });
     }
     const { user, temporaryPassword, expiresAt } = await createInvitedUser({
-      ad, soyad, unvan, eposta, birimId, actorId: req.user.kullaniciId
+      ad, soyad, unvan, eposta, birimId, rol, actorId: req.user.kullaniciId
     });
     const teslim = await deliverTemporaryPassword({ user, temporaryPassword, expiresAt });
     const kullanici = await prisma.kullanici.findUnique({
@@ -194,7 +194,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
     if (durum !== undefined && !['aktif', 'pasif', 'askida'].includes(durum)) {
       return res.status(400).json({ hata: 'Geçersiz durum.' });
     }
-    if (rol !== undefined && !['hoca', 'admin'].includes(rol)) {
+    if (rol !== undefined && !['hoca', 'idari_personel', 'admin'].includes(rol)) {
       return res.status(400).json({ hata: 'Geçersiz rol.' });
     }
     if (ad !== undefined && !String(ad).trim()) return res.status(400).json({ hata: 'Ad boş olamaz.' });

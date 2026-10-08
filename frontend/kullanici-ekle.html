@@ -53,7 +53,7 @@
         <div class="card-box-header">
           <div>
             <div class="card-box-title">Listede Olmayan Birini Ekle</div>
-            <div class="card-box-subtitle">Bölüm sitesinde henüz görünmeyen bir öğretim elemanı için elle hesap açın</div>
+            <div class="card-box-subtitle">Bölüm sitesinde görünmeyen bir öğretim elemanı ya da idari personel için elle hesap açın</div>
           </div>
         </div>
         <form id="manualForm" class="stack" novalidate>
@@ -70,8 +70,6 @@
                 <option>Öğr. Gör.</option>
                 <option>Arş. Gör. Dr.</option>
                 <option>Arş. Gör.</option>
-               <option value="yetkili_ogrenci">Yetkili Öğrenci</option>
-              <option value="idari_personel">İdari Personel</option>
               </select>
             </div>
             <div class="field">
@@ -87,6 +85,14 @@
             <label class="field-label" for="manualEposta">Kurumsal e-posta</label>
             <input class="form-control" type="email" id="manualEposta" maxlength="128" autocomplete="off" placeholder="kullaniciadi@subu.edu.tr" required>
             <span class="field-hint" id="domainHint">Yalnızca @subu.edu.tr adresleri kabul edilir.</span>
+          </div>
+          <div class="field">
+            <label class="field-label" for="manualRol">Rol</label>
+            <select class="form-control" id="manualRol">
+              <option value="hoca">Öğretim Elemanı</option>
+              <option value="idari_personel">İdari Personel</option>
+            </select>
+            <span class="field-hint">Yönetici yetkisi hesap açıldıktan sonra Kullanıcılar sayfasından verilir.</span>
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary" id="manualSubmit">

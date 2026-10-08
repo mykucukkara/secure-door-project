@@ -86,13 +86,15 @@ function hataOlustur(message, statusCode = 400) {
  * Yeni kullanıcıyı geçici şifreyle oluşturur. Geçici şifre yalnızca dönüş
  * değerinde bulunur; veritabanına ve loglara düz metin olarak yazılmaz.
  */
-async function createInvitedUser({ ad, soyad, unvan, eposta, birimId, actorId }) {
+async function createInvitedUser({ ad, soyad, unvan, eposta, birimId, rol = 'hoca', actorId }) {
   const temizAd = cleanName(ad);
   const temizSoyad = cleanName(soyad);
   const temizUnvan = cleanName(unvan, 48) || null;
   const email = normalizeEmail(eposta);
 
   if (!temizAd || !temizSoyad) throw hataOlustur('Ad ve soyad zorunludur.');
+  // Yönetici yetkisi hesap açılırken verilemez; sonradan düzenleme ekranından verilir.
+  const yeniRol = rol === 'idari_personel' ? 'idari_personel' : 'hoca';
   if (!email) throw hataOlustur('Geçici şifrenin gönderilebilmesi için e-posta adresi zorunludur.');
   if (!isValidEmail(email)) throw hataOlustur('Geçerli bir e-posta adresi girin.');
   if (!isAllowedEmailDomain(email)) {
@@ -122,7 +124,7 @@ async function createInvitedUser({ ad, soyad, unvan, eposta, birimId, actorId })
         unvan: temizUnvan,
         eposta: email,
         birimId: birim,
-        rol: 'hoca',
+        rol: yeniRol,
         durum: 'aktif',
         sifreHash: passwordHash,
         sifreGecerlilikBitis: expiresAt,

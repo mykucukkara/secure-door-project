@@ -138,7 +138,8 @@
       unvan: document.getElementById('manualUnvan').value,
       ad: document.getElementById('manualAd').value.trim(),
       soyad: document.getElementById('manualSoyad').value.trim(),
-      eposta: document.getElementById('manualEposta').value.trim().toLowerCase()
+      eposta: document.getElementById('manualEposta').value.trim().toLowerCase(),
+      rol: document.getElementById('manualRol').value
     };
     if (!person.ad || !person.soyad) { setManualAlert('Ad ve soyad zorunludur.', 'error'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(person.eposta)) { setManualAlert('Geçerli bir e-posta adresi girin.', 'error'); return; }
@@ -171,7 +172,7 @@
     try {
       var res = await API.apiRequest('/api/kullanicilar', {
         method: 'POST',
-        body: { unvan: person.unvan || undefined, ad: person.ad, soyad: person.soyad, eposta: person.eposta }
+        body: { unvan: person.unvan || undefined, ad: person.ad, soyad: person.soyad, eposta: person.eposta, rol: person.rol || undefined }
       });
       UI.closeModal(document.getElementById('confirmModal'));
       showResult(person, res);

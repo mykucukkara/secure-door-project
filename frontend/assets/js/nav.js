@@ -296,7 +296,7 @@
 
     if (nameEl) nameEl.textContent = fullName || user.eposta || 'Kullanıcı';
     if (roleEl) {
-      var roleMap = { admin: ['Yönetici', 'badge-warning'], hoca: ['Öğretim Elemanı', 'badge-info'], sistem: ['Sistem', 'badge-neutral'] };
+      var roleMap = { admin: ['Yönetici', 'badge-warning'], hoca: ['Öğretim Elemanı', 'badge-info'], idari_personel: ['İdari Personel', 'badge-info'], sistem: ['Sistem', 'badge-neutral'] };
       var info = roleMap[user.rol] || [user.rol || '—', 'badge-neutral'];
       roleEl.textContent = info[0];
       roleEl.className = 'badge ' + info[1];

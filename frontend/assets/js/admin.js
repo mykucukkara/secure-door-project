@@ -196,7 +196,7 @@
     document.getElementById('userEposta').value = u.eposta || '';
 
     var rolSelect = document.getElementById('userRol');
-    rolSelect.value = u.rol === 'admin' ? 'admin' : 'hoca';
+    rolSelect.value = ['admin', 'idari_personel'].indexOf(u.rol) !== -1 ? u.rol : 'hoca';
     rolSelect.disabled = self;
     var durumSelect = document.getElementById('userDurum');
     durumSelect.value = u.durum === 'pasif' ? 'pasif' : 'aktif';
@@ -227,7 +227,8 @@
       setFormAlert('Ad ve soyad zorunludur.', 'error');
       return;
     }
-    if (u && body.rol && body.rol !== u.rol) {
+    // Yalnızca yönetici yetkisi verilirken/kaldırılırken onay istenir.
+    if (u && body.rol && body.rol !== u.rol && (body.rol === 'admin' || u.rol === 'admin')) {
       var msg = body.rol === 'admin'
         ? body.ad + ' ' + body.soyad + ' kullanıcısına yönetici yetkisi verilecek. Devam edilsin mi?'
         : body.ad + ' ' + body.soyad + ' kullanıcısının yönetici yetkisi kaldırılacak. Devam edilsin mi?';

@@ -10,10 +10,10 @@ router.get('/', async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const offset = parseInt(req.query.offset) || 0;
 
-        // Hocalar yalnızca kendi erişim kayıtlarını görebilir; adminler tüm kayıtları görür.
-        // (Bu görünürlük farkı frontend'de de yansıtılır, ama gerçek sınır burada,
-        // API seviyesinde uygulanır.)
-        const where = req.user.rol === 'hoca' ? { kullaniciId: BigInt(req.user.kullaniciId) } : {};
+        // Yönetici olmayanlar (hoca, idari personel) yalnızca kendi erişim kayıtlarını görebilir;
+        // adminler tüm kayıtları görür. (Bu görünürlük farkı frontend'de de yansıtılır, ama
+        // gerçek sınır burada, API seviyesinde uygulanır.)
+        const where = req.authenticatedUser.rol === 'admin' ? {} : { kullaniciId: BigInt(req.user.kullaniciId) };
 
         const erisimKayitlari = await prisma.erisimKaydi.findMany({
             where,

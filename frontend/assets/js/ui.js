@@ -39,6 +39,7 @@
     },
     rol: {
       hoca: ['Öğretim Elemanı', 'info'],
+      idari_personel: ['İdari Personel', 'info'],
       admin: ['Yönetici', 'warning'],
       sistem: ['Sistem', 'neutral']
     },

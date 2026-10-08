@@ -73,8 +73,9 @@ const requireAdmin = (req, res, next) => {
   return res.status(403).json({ message: 'Bu işlem için yönetici yetkisi gerekiyor.' });
 };
 
+// İdari personel, panelde öğretim elemanıyla aynı (salt okunur) yetkilere sahiptir.
 const requireAdminOrHoca = (req, res, next) => {
-  if (req.authenticatedUser && ['admin', 'hoca'].includes(req.authenticatedUser.rol)) return next();
+  if (req.authenticatedUser && ['admin', 'hoca', 'idari_personel'].includes(req.authenticatedUser.rol)) return next();
   return res.status(403).json({ message: 'Bu işlem için yetkiniz yok.' });
 };
 
