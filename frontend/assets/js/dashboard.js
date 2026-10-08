@@ -18,8 +18,8 @@
 
     var user = await API.requireAuth();
     if (!user) return; // requireAuth already redirected to login
-    // Pano kapı/cihaz/kullanıcı özetleri içerir; yetkili öğrenciler Profilim'e yönlenir.
-    if (user.rol === 'yetkili_ogrenci') {
+    // Pano yalnızca yöneticiler içindir; diğer roller Profilim'e yönlenir.
+    if (user.rol !== 'admin') {
       location.replace('hesabim.html');
       return;
     }

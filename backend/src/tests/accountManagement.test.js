@@ -223,7 +223,7 @@ describe('Hesap açma, zorunlu şifre değişimi ve yönetici kuralları', () =>
     expect(demote.statusCode).toBe(200);
   });
 
-  test('idari personel rolüyle hesap açılabilmeli ve hoca ile aynı panel yetkisine sahip olmalı', async () => {
+  test('idari personel rolüyle hesap açılabilmeli; panelde yalnızca kendi verisini görmeli', async () => {
     const res = await request(app)
       .post('/api/kullanicilar')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -236,8 +236,9 @@ describe('Hesap açma, zorunlu şifre değişimi ve yönetici kuralları', () =>
     await prisma.kullanici.update({ where: { kullaniciId: stored.kullaniciId }, data: { sifreDegistirmeZorunlu: false } });
     const idariToken = signFor(stored);
 
+    // Yönetici dışındaki roller personel verilerini (kapılar vb.) göremez.
     const okuma = await request(app).get('/api/kapilar').set('Authorization', `Bearer ${idariToken}`);
-    expect(okuma.statusCode).toBe(200);
+    expect(okuma.statusCode).toBe(403);
 
     // Yönetici olmayanlar yalnızca kendi erişim kayıtlarını görmeli.
     const kayitlar = await request(app).get('/api/erisim-kayitlari').set('Authorization', `Bearer ${idariToken}`);

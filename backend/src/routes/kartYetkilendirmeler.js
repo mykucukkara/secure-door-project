@@ -4,8 +4,7 @@ const cardApprovalService = require('../services/cardApprovalService');
 const { writeAudit } = require('../services/auditService');
 const {
   authenticateToken,
-  requireAdmin,
-  requireAdminOrHoca
+  requireAdmin
 } = require('../middlewares/authMiddleware');
 
 const router = express.Router();

@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../config/prisma');
-const { authenticateToken, requireAdmin, requireAdminOrHoca } = require('../middlewares/authMiddleware');
-router.use(authenticateToken, requireAdminOrHoca);
+const { authenticateToken, requireAdmin } = require('../middlewares/authMiddleware');
+router.use(authenticateToken, requireAdmin);
 
 // Tüm cihaz-kapı atamalarını veritabanından getir
 router.get('/', async (req, res) => {

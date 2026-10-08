@@ -25,6 +25,10 @@
 
     var user = await API.requireAuth();
     if (!user) return;
+    if (user.rol !== 'admin') {
+      location.replace('hesabim.html');
+      return;
+    }
 
     window.SecureNav.init(user);
 

@@ -5,12 +5,11 @@ const cardApprovalService = require('../services/cardApprovalService');
 const { normalizeKartUid } = require('../utils/kartUid');
 const {
     authenticateToken,
-    requireAdmin,
-    requireAdminOrHoca
+    requireAdmin
 } = require('../middlewares/authMiddleware');
 
 // GET /api/kartlar - Tüm kartları listele (durum parametresine göre isteğe bağlı filtreleme)
-router.get('/', authenticateToken, requireAdminOrHoca, async (req, res) => {
+router.get('/', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { durum } = req.query;
         const whereClause = durum ? { durum } : {};
@@ -64,7 +63,7 @@ router.post('/onayla', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // GET /api/kartlar/:id - ID'ye göre tek bir kart getir
-router.get('/son-okutulan', authenticateToken, requireAdminOrHoca, async (req, res) => {
+router.get('/son-okutulan', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const latest = await prisma.erisimKaydi.findFirst({
             where: { okunanUid: { not: null } },
@@ -142,7 +141,7 @@ router.get('/sorgula/:uid', authenticateToken, requireAdmin, async (req, res) =>
     }
 });
 
-router.get('/:id', authenticateToken, requireAdminOrHoca, async (req, res) => {
+router.get('/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const kart = await prisma.kart.findUnique({

@@ -20,7 +20,6 @@ const { getAkademikKadro } = require('../services/akademikKadroService');
 const {
   authenticateToken,
   requireAdmin,
-  requireAdminOrHoca,
   requireSelfOrAdmin
 } = require('../middlewares/authMiddleware');
 
@@ -63,7 +62,7 @@ function parseId(value) {
   return BigInt(text);
 }
 
-router.get('/ozet', requireAdminOrHoca, async (req, res) => {
+router.get('/ozet', requireAdmin, async (req, res) => {
   try {
     const [toplam, aktif] = await Promise.all([
       prisma.kullanici.count(),

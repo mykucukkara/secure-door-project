@@ -3,7 +3,7 @@ const router = express.Router();
 const prisma = require('../config/prisma');
 const issueReportService = require('../services/issueReportService');
 const { writeAudit } = require('../services/auditService');
-const { authenticateToken, requireAdmin, requireAdminOrHoca } = require('../middlewares/authMiddleware');
+const { authenticateToken, requireAdmin } = require('../middlewares/authMiddleware');
 
 const SUPPORTED_ISSUE_TYPES = new Set([
     'Kapı', 'RFID okuyucu', 'Tuş takımı', 'Monitör', 'Bilgisayar kasası',
@@ -65,7 +65,7 @@ router.post('/', async (req, res) => {
 });
 
 // GET /api/arizalar - Tüm arıza bildirimlerini listeleme (Yönetici Paneli)
-router.get('/', authenticateToken, requireAdminOrHoca, async (req, res) => {
+router.get('/', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const reports = await issueReportService.getAllIssueReports();
         return res.json({ success: true, data: reports });

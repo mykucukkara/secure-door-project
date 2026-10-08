@@ -30,17 +30,15 @@
     globe: '<circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path>'
   };
 
-  var PERSONEL_ROLLERI = 'admin,hoca,idari_personel';
-
+  // Yönetici dışındaki roller yalnızca Erişim Geçmişi ve Profilim'i görür.
   var NAV_ITEMS = [
-    { href: 'index.html', label: 'Anasayfa', icon: 'home', home: true },
+    { href: 'index.html', label: 'Anasayfa', icon: 'home', home: true, role: 'admin' },
     { href: 'admin.html', label: 'Kullanıcılar', icon: 'users', role: 'admin' },
     { href: 'kullanici-ekle.html', label: 'Kullanıcı Ekle', icon: 'userPlus', role: 'admin' },
     { href: 'yetkilendirme.html', label: 'Kart Yetkilendirme', icon: 'card', role: 'admin' },
     { href: 'gecmis-girisler.html', label: 'Erişim Geçmişi', icon: 'clock' },
-    // Yetkili öğrenciler yalnızca Erişim Geçmişi ve Profilim'i görür.
-    { href: 'ariza-gecmisi.html', label: 'Arıza Kayıtları', icon: 'wrench', role: PERSONEL_ROLLERI },
-    { href: 'qr-kod.html', label: 'QR Kod', icon: 'qr', role: PERSONEL_ROLLERI },
+    { href: 'ariza-gecmisi.html', label: 'Arıza Kayıtları', icon: 'wrench', role: 'admin' },
+    { href: 'qr-kod.html', label: 'QR Kod', icon: 'qr', role: 'admin' },
     { href: 'hesabim.html', label: 'Profilim', icon: 'user' }
   ];
 
