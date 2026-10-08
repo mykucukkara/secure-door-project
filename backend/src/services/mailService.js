@@ -33,6 +33,10 @@ function formatDateTr(date) {
   });
 }
 
+// Panel yalnızca kampüs içinden erişilebilen bir adreste çalıştığı için tüm e-postalarda belirtilir.
+const AG_UYARISI = 'Sisteme yalnızca üniversite ağından (kampüs içi kablolu ağ veya Wi-Fi) erişilebilir; '
+  + 'bağlantılar kampüs dışından açılmaz.';
+
 function mailLayout(bodyHtml) {
   return `<!doctype html><html lang="tr"><body style="margin:0;background:#f3f5f9;font-family:Arial,Helvetica,sans-serif;color:#1d2433">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f9;padding:24px 0"><tr><td align="center">
@@ -41,7 +45,8 @@ function mailLayout(bodyHtml) {
 <div style="font-size:12px;letter-spacing:.06em;opacity:.85">SAKARYA UYGULAMALI BİLİMLER ÜNİVERSİTESİ</div>
 <div style="font-size:18px;font-weight:bold;margin-top:2px">Bilgisayar Mühendisliği · SecureLab</div>
 </td></tr>
-<tr><td style="padding:24px;font-size:15px;line-height:1.55">${bodyHtml}</td></tr>
+<tr><td style="padding:24px;font-size:15px;line-height:1.55">${bodyHtml}
+<p style="background:#eef4fb;border:1px solid #b9d3ee;border-radius:6px;padding:10px 14px;font-size:14px"><strong>Erişim:</strong> ${escapeHtml(AG_UYARISI)}</p></td></tr>
 <tr><td style="padding:14px 24px;background:#f7f8fb;color:#6b7280;font-size:12px;border-top:1px solid #e1e5ee">
 Bu e-posta SecureLab kapı erişim kontrol sistemi tarafından otomatik gönderilmiştir. Lütfen yanıtlamayın.
 Şifrenizi kimseyle paylaşmayın; sistem yöneticileri sizden asla şifrenizi istemez.
@@ -54,7 +59,7 @@ async function sendPasswordResetEmail({ to, name, resetUrl, expiresAt }) {
     from: process.env.SMTP_FROM,
     to,
     subject: 'SecureLab web şifresi yenileme',
-    text: `${name || 'Merhaba'},\n\nWeb şifrenizi yenilemek için aşağıdaki tek kullanımlık bağlantıyı açın:\n${resetUrl}\n\nBağlantı ${formatDateTr(expiresAt)} tarihinde geçersiz olacaktır. Bu talebi siz yapmadıysanız mesajı dikkate almayın.`,
+    text: `${name || 'Merhaba'},\n\nWeb şifrenizi yenilemek için aşağıdaki tek kullanımlık bağlantıyı açın:\n${resetUrl}\n\nBağlantı ${formatDateTr(expiresAt)} tarihinde geçersiz olacaktır. Bu talebi siz yapmadıysanız mesajı dikkate almayın.\n\n${AG_UYARISI}`,
     html: mailLayout(`<p>Sayın ${escapeHtml(name || 'kullanıcı')},</p>
 <p>Web şifrenizi yenilemek için 15 dakika geçerli tek kullanımlık bağlantıyı açın:</p>
 <p><a href="${escapeHtml(resetUrl)}" style="display:inline-block;background:#056DB0;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px">Şifremi yenile</a></p>
@@ -79,7 +84,7 @@ async function sendAccountInviteEmail({ to, name, temporaryPassword, loginUrl, e
     from: process.env.SMTP_FROM,
     to,
     subject: baslik,
-    text: `Sayın ${name || 'kullanıcı'},\n\n${giris}\n\nGiriş adresi: ${loginUrl}\nE-posta: ${to}\nGeçici şifreniz: ${temporaryPassword}\n\nBu şifreyle giriş yaptıktan sonra sistem sizden hemen kendi şifrenizi belirlemenizi isteyecektir. Geçici şifre ${formatDateTr(expiresAt)} tarihine kadar geçerlidir.\n\nKapı şifrenizi (6 haneli PIN) giriş yaptıktan sonra Profilim sayfasından görebilir ve değiştirebilirsiniz.`,
+    text: `Sayın ${name || 'kullanıcı'},\n\n${giris}\n\nGiriş adresi: ${loginUrl}\nE-posta: ${to}\nGeçici şifreniz: ${temporaryPassword}\n\nBu şifreyle giriş yaptıktan sonra sistem sizden hemen kendi şifrenizi belirlemenizi isteyecektir. Geçici şifre ${formatDateTr(expiresAt)} tarihine kadar geçerlidir.\n\nKapı şifrenizi (6 haneli PIN) giriş yaptıktan sonra Profilim sayfasından görebilir ve değiştirebilirsiniz.\n\n${AG_UYARISI}`,
     html: mailLayout(`<p>Sayın ${escapeHtml(name || 'kullanıcı')},</p>
 <p>${escapeHtml(giris)}</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e1e5ee;border-radius:6px;width:100%">
