@@ -336,6 +336,10 @@
   /* ---------------- Köprü: istasyon başka programla sunucuya bağlı ---------------- */
 
   function startBridge() {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-kopru-indir]');
+      if (btn) downloadBridgeInstaller(btn);
+    });
     pollBridge();
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) {
@@ -367,15 +371,50 @@
     if (!document.hidden) state.kopruTimer = setTimeout(pollBridge, KOPRU_POLL_MS);
   }
 
+  // Köprü kurulum dosyası: sunucu adresi ve istasyon anahtarı gömülü .cmd (yalnızca yönetici).
+  async function downloadBridgeInstaller(btn) {
+    btn.disabled = true;
+    try {
+      var response = await fetch('/api/istasyon/kurulum', {
+        headers: { Authorization: 'Bearer ' + API.getToken() }
+      });
+      if (!response.ok) {
+        var data = {};
+        try { data = await response.json(); } catch (e) { /* yoksay */ }
+        throw new Error(data.hata || data.message || 'Kurulum dosyası indirilemedi.');
+      }
+      var url = URL.createObjectURL(await response.blob());
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'SecureLab-Istasyon-Koprusu-Kur.cmd';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      UI.toast('Kurulum dosyası indirildi. İstasyonun takılacağı bilgisayarda çift tıklayın.', 'success');
+    } catch (err) {
+      UI.toast(err.message || 'Kurulum dosyası indirilemedi.', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function setBridgeAlert(html) {
+    var alertBox = document.getElementById('serialSupportAlert');
+    // Her sorguda yeniden çizip düğme odağını/tıklamayı bozmamak için yalnızca değişince yaz.
+    if (alertBox.getAttribute('data-icerik') === html) return;
+    alertBox.setAttribute('data-icerik', html);
+    alertBox.innerHTML = html;
+  }
+
   function renderBridgeStatus(res) {
     if (state.port) return; // Web Serial ile doğrudan bağlıysa onun durumu gösterilir.
     var kopruler = res.kopruler || [];
     var bagli = kopruler.filter(function (k) { return k.istasyonBagli; });
-    var alertBox = document.getElementById('serialSupportAlert');
 
     if (bagli.length) {
       setStationStatus('İstasyon bağlı · ' + bagli.map(function (k) { return k.ad; }).join(', '), 'ok');
-      alertBox.innerHTML = '';
+      setBridgeAlert('');
       if (!state.kopruUyariGosterildi) {
         state.kopruUyariGosterildi = true;
         appendLog('● İstasyon köprüsü bağlı (' + bagli.map(function (k) { return k.ad + ' ' + (k.port || ''); }).join(', ') + '). Kartı okutun.');
@@ -385,20 +424,25 @@
     state.kopruUyariGosterildi = false;
     if (kopruler.length) {
       setStationStatus('İstasyon takılı değil', 'error');
-      alertBox.innerHTML = '';
+      setBridgeAlert('');
       return;
     }
     setStationStatus('İstasyon bağlı değil');
-    if (!serialSupported()) {
-      alertBox.innerHTML =
-        '<div class="alert alert-info mb-md"><div class="alert-body">' +
-        (res.yapilandirildi
-          ? 'İstasyonun takılı olduğu bilgisayarda <strong>istasyon köprüsü</strong> çalışmıyor. ' +
-            'Köprü kuruluysa bilgisayarı yeniden başlatın; kurulu değilse <code>kart-kayit-istasyonu/kopru/kur.cmd</code> ile bir kez kurun. '
-          : 'İstasyon köprüsü sunucuda yapılandırılmamış (<code>ISTASYON_ANAHTARI</code>). ') +
-        'Bu sırada seri ekrandaki UID\'yi aşağıdaki alana elle yazabilirsiniz.' +
-        '</div></div>';
+    if (serialSupported()) {
+      setBridgeAlert('');
+      return;
     }
+    setBridgeAlert(res.yapilandirildi
+      ? '<div class="alert alert-info mb-md"><div class="alert-body">' +
+        '<strong>İstasyon köprüsü çalışmıyor.</strong> İstasyonu takacağınız bilgisayara köprüyü bir kez kurun: ' +
+        'dosyayı indirip o bilgisayarda çift tıklayın (Windows uyarı verirse <em>Ek bilgi → Yine de çalıştır</em>). ' +
+        'Köprü Windows açılışında kendiliğinden başlar; kuruluysa bilgisayarı yeniden başlatmanız yeterli.' +
+        '<div class="mt-sm"><button type="button" class="btn btn-secondary btn-sm" data-kopru-indir>Köprü kurulum dosyasını indir</button></div>' +
+        '</div></div>'
+      : '<div class="alert alert-warning mb-md"><div class="alert-body">' +
+        'İstasyon köprüsü sunucuda yapılandırılmamış (<code>ISTASYON_ANAHTARI</code>). ' +
+        'Bu sırada seri ekrandaki UID\'yi aşağıdaki alana elle yazabilirsiniz.' +
+        '</div></div>');
   }
 
   function setStationStatus(text, kind) {

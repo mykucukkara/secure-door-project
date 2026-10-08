@@ -14,6 +14,8 @@ const express = require('express');
 const { rateLimit } = require('express-rate-limit');
 const { authenticateToken, requireAdmin } = require('../middlewares/authMiddleware');
 const { normalizeKartUid } = require('../utils/kartUid');
+const { writeAudit } = require('../services/auditService');
+const { kurulumDosyasiOlustur } = require('../services/istasyonKurulumService');
 
 const router = express.Router();
 
@@ -93,6 +95,40 @@ router.get('/durum', authenticateToken, requireAdmin, (req, res) => {
     kart,
     sira: durum.sira
   });
+});
+
+function sunucuAdresi(req) {
+  const acik = String(process.env.APP_BASE_URL || '').trim().replace(/\/+$/, '');
+  return acik || `${req.protocol}://${req.get('host')}`;
+}
+
+// Panel: sunucu adresi ve istasyon anahtarı gömülü, çift tıklanınca köprüyü kuran .cmd.
+router.get('/kurulum', authenticateToken, requireAdmin, async (req, res) => {
+  const anahtar = String(process.env.ISTASYON_ANAHTARI || '');
+  if (anahtar.length < 16) {
+    return res.status(409).json({ hata: 'Sunucuda ISTASYON_ANAHTARI tanımlı değil; köprü kurulamaz.' });
+  }
+  const sunucu = sunucuAdresi(req);
+  const dosya = kurulumDosyasiOlustur({ sunucu, anahtar });
+  if (!dosya) {
+    return res.status(500).json({ hata: 'Köprü betikleri sunucuda bulunamadı (kart-kayit-istasyonu/kopru).' });
+  }
+
+  try {
+    await writeAudit({
+      actorId: req.user.kullaniciId,
+      action: 'olustur',
+      tableName: 'istasyon_kopru_kurulum',
+      after: { indirildi: true, sunucu }
+    });
+  } catch (error) {
+    console.error('[ISTASYON] Kurulum indirme denetim kaydı yazılamadı:', error.message);
+  }
+
+  res.set('Content-Type', 'application/octet-stream');
+  res.set('Content-Disposition', 'attachment; filename="SecureLab-Istasyon-Koprusu-Kur.cmd"');
+  res.set('Cache-Control', 'no-store');
+  return res.send(dosya);
 });
 
 module.exports = router;

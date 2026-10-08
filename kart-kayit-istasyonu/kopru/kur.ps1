@@ -5,11 +5,14 @@
 #
 #   kur.cmd                                  (sunucu ve anahtari sorar)
 #   kur.cmd -Sunucu http://10.9.2.50 -Anahtar <ISTASYON_ANAHTARI>
+# Panelden indirilen kurulum dosyasi (GET /api/istasyon/kurulum) bu betigi
+# sunucu, anahtar ve kopru.ps1 icerigi (-KopruIcerik) gomulu olarak calistirir.
 
 param(
     [string]$Sunucu,
     [string]$Anahtar,
-    [string]$Ad = $env:COMPUTERNAME
+    [string]$Ad = $env:COMPUTERNAME,
+    [string]$KopruIcerik
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,7 +34,11 @@ Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
 New-Item -ItemType Directory -Force -Path $Hedef | Out-Null
-Copy-Item -Force (Join-Path $PSScriptRoot 'kopru.ps1') $Hedef
+if ($KopruIcerik) {
+    [System.IO.File]::WriteAllText((Join-Path $Hedef 'kopru.ps1'), $KopruIcerik, [System.Text.Encoding]::ASCII)
+} else {
+    Copy-Item -Force (Join-Path $PSScriptRoot 'kopru.ps1') $Hedef
+}
 @{ sunucu = $Sunucu.TrimEnd('/'); anahtar = $Anahtar; ad = $Ad } |
     ConvertTo-Json | Set-Content -Path $AyarYolu -Encoding UTF8
 
