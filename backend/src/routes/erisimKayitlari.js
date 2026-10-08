@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../config/prisma');
-const { authenticateToken, requireAdminOrHoca } = require('../middlewares/authMiddleware');
-router.use(authenticateToken, requireAdminOrHoca);
+const { authenticateToken, requirePanelUser } = require('../middlewares/authMiddleware');
+// Yetkili öğrenciler de kendi erişim geçmişlerini görebilir (aşağıdaki filtre).
+router.use(authenticateToken, requirePanelUser);
 
 // Erişim kayıtlarını sayfalama (limit ve offset) desteğiyle getir
 router.get('/', async (req, res) => {
@@ -10,7 +11,7 @@ router.get('/', async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const offset = parseInt(req.query.offset) || 0;
 
-        // Yönetici olmayanlar (hoca, idari personel) yalnızca kendi erişim kayıtlarını görebilir;
+        // Yönetici olmayanlar (hoca, idari personel, yetkili öğrenci) yalnızca kendi erişim kayıtlarını görebilir;
         // adminler tüm kayıtları görür. (Bu görünürlük farkı frontend'de de yansıtılır, ama
         // gerçek sınır burada, API seviyesinde uygulanır.)
         const where = req.authenticatedUser.rol === 'admin' ? {} : { kullaniciId: BigInt(req.user.kullaniciId) };

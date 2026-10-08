@@ -79,6 +79,13 @@ const requireAdminOrHoca = (req, res, next) => {
   return res.status(403).json({ message: 'Bu işlem için yetkiniz yok.' });
 };
 
+// Yetkili öğrenci dahil tüm panel kullanıcıları (yalnızca kendi verisini gören uç noktalar için).
+const requirePanelUser = (req, res, next) => {
+  if (req.authenticatedUser
+    && ['admin', 'hoca', 'idari_personel', 'yetkili_ogrenci'].includes(req.authenticatedUser.rol)) return next();
+  return res.status(403).json({ message: 'Bu işlem için yetkiniz yok.' });
+};
+
 const requireSelfOrAdmin = (req, res, next) => {
   const requestedUserId = String(req.params.id || req.params.kullaniciId || '');
   const authenticatedUserId = String(req.user?.kullaniciId || '');
@@ -93,6 +100,7 @@ module.exports = {
   authenticateToken,
   requireAdmin,
   requireAdminOrHoca,
+  requirePanelUser,
   requireSelfOrAdmin,
   JWT_SECRET
 };

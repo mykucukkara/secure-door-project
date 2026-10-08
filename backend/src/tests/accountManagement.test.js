@@ -259,6 +259,32 @@ describe('Hesap açma, zorunlu şifre değişimi ve yönetici kuralları', () =>
     expect(rolDegisimi.body.rol).toBe('idari_personel');
   });
 
+  test('yetkili öğrenci yalnızca kendi erişim geçmişini ve profilini görebilmeli', async () => {
+    const res = await request(app)
+      .post('/api/kullanicilar')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ ad: 'Yetkili', soyad: 'Öğrenci', eposta: `ogrenci_${stamp}@ogr.subu.edu.tr`, rol: 'yetkili_ogrenci' });
+    expect(res.statusCode).toBe(201);
+    expect(res.body.kullanici.rol).toBe('yetkili_ogrenci');
+
+    const stored = await prisma.kullanici.findUnique({ where: { kullaniciId: BigInt(res.body.kullanici.kullaniciId) } });
+    await prisma.kullanici.update({ where: { kullaniciId: stored.kullaniciId }, data: { sifreDegistirmeZorunlu: false } });
+    const ogrenciToken = signFor(stored);
+
+    const kayitlar = await request(app).get('/api/erisim-kayitlari').set('Authorization', `Bearer ${ogrenciToken}`);
+    expect(kayitlar.statusCode).toBe(200);
+    kayitlar.body.forEach((k) => expect(String(k.kullaniciId)).toBe(String(stored.kullaniciId)));
+
+    const profil = await request(app).get(`/api/kullanicilar/${stored.kullaniciId}`).set('Authorization', `Bearer ${ogrenciToken}`);
+    expect(profil.statusCode).toBe(200);
+
+    for (const yol of ['/api/kapilar', '/api/kullanicilar/ozet', '/api/arizalar', '/api/kartlar']) {
+      // eslint-disable-next-line no-await-in-loop
+      const engel = await request(app).get(yol).set('Authorization', `Bearer ${ogrenciToken}`);
+      expect(engel.statusCode).toBe(403);
+    }
+  });
+
   test('admin standart kullanıcıyı silebilmeli (geçmiş kaydı varsa pasife alınır)', async () => {
     const res = await request(app)
       .delete(`/api/kullanicilar/${createdUser.kullaniciId}`)

@@ -30,14 +30,17 @@
     globe: '<circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path>'
   };
 
+  var PERSONEL_ROLLERI = 'admin,hoca,idari_personel';
+
   var NAV_ITEMS = [
     { href: 'index.html', label: 'Anasayfa', icon: 'home', home: true },
     { href: 'admin.html', label: 'Kullanıcılar', icon: 'users', role: 'admin' },
     { href: 'kullanici-ekle.html', label: 'Kullanıcı Ekle', icon: 'userPlus', role: 'admin' },
     { href: 'yetkilendirme.html', label: 'Kart Yetkilendirme', icon: 'card', role: 'admin' },
     { href: 'gecmis-girisler.html', label: 'Erişim Geçmişi', icon: 'clock' },
-    { href: 'ariza-gecmisi.html', label: 'Arıza Kayıtları', icon: 'wrench' },
-    { href: 'qr-kod.html', label: 'QR Kod', icon: 'qr' },
+    // Yetkili öğrenciler yalnızca Erişim Geçmişi ve Profilim'i görür.
+    { href: 'ariza-gecmisi.html', label: 'Arıza Kayıtları', icon: 'wrench', role: PERSONEL_ROLLERI },
+    { href: 'qr-kod.html', label: 'QR Kod', icon: 'qr', role: PERSONEL_ROLLERI },
     { href: 'hesabim.html', label: 'Profilim', icon: 'user' }
   ];
 
@@ -296,7 +299,7 @@
 
     if (nameEl) nameEl.textContent = fullName || user.eposta || 'Kullanıcı';
     if (roleEl) {
-      var roleMap = { admin: ['Yönetici', 'badge-warning'], hoca: ['Öğretim Elemanı', 'badge-info'], idari_personel: ['İdari Personel', 'badge-info'], sistem: ['Sistem', 'badge-neutral'] };
+      var roleMap = { admin: ['Yönetici', 'badge-warning'], hoca: ['Öğretim Elemanı', 'badge-info'], idari_personel: ['İdari Personel', 'badge-info'], yetkili_ogrenci: ['Yetkili Öğrenci', 'badge-neutral'], sistem: ['Sistem', 'badge-neutral'] };
       var info = roleMap[user.rol] || [user.rol || '—', 'badge-neutral'];
       roleEl.textContent = info[0];
       roleEl.className = 'badge ' + info[1];

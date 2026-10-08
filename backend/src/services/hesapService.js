@@ -94,7 +94,7 @@ async function createInvitedUser({ ad, soyad, unvan, eposta, birimId, rol = 'hoc
 
   if (!temizAd || !temizSoyad) throw hataOlustur('Ad ve soyad zorunludur.');
   // Yönetici yetkisi hesap açılırken verilemez; sonradan düzenleme ekranından verilir.
-  const yeniRol = rol === 'idari_personel' ? 'idari_personel' : 'hoca';
+  const yeniRol = ['idari_personel', 'yetkili_ogrenci'].includes(rol) ? rol : 'hoca';
   if (!email) throw hataOlustur('Geçici şifrenin gönderilebilmesi için e-posta adresi zorunludur.');
   if (!isValidEmail(email)) throw hataOlustur('Geçerli bir e-posta adresi girin.');
   if (!isAllowedEmailDomain(email)) {

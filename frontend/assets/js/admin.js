@@ -196,7 +196,7 @@
     document.getElementById('userEposta').value = u.eposta || '';
 
     var rolSelect = document.getElementById('userRol');
-    rolSelect.value = ['admin', 'idari_personel'].indexOf(u.rol) !== -1 ? u.rol : 'hoca';
+    rolSelect.value = ['admin', 'idari_personel', 'yetkili_ogrenci'].indexOf(u.rol) !== -1 ? u.rol : 'hoca';
     rolSelect.disabled = self;
     var durumSelect = document.getElementById('userDurum');
     durumSelect.value = u.durum === 'pasif' ? 'pasif' : 'aktif';
