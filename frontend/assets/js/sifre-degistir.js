@@ -41,7 +41,7 @@
     wirePolicy();
     wireForm();
     wireLogout();
-    document.getElementById('mevcutSifre').focus();
+    document.getElementById('yeniSifre').focus();
   }
 
   function wireToggle() {
@@ -96,16 +96,15 @@
       e.preventDefault();
       setAlert('', 'info');
 
-      var mevcut = document.getElementById('mevcutSifre').value;
+      // İlk girişte geçici şifre yeniden sorulmaz; sunucu oturumdan doğrular.
       var yeni = document.getElementById('yeniSifre').value;
       var tekrar = document.getElementById('yeniSifreTekrar').value;
 
-      if (!mevcut || !yeni || !tekrar) { setAlert('Lütfen tüm alanları doldurun.', 'error'); return; }
+      if (!yeni || !tekrar) { setAlert('Lütfen tüm alanları doldurun.', 'error'); return; }
       var result = evaluate(yeni);
       var failed = Object.keys(result).filter(function (k) { return !result[k]; });
       if (failed.length) { setAlert('Yeni şifre kurallarının tamamını karşılamıyor.', 'error'); return; }
       if (yeni !== tekrar) { setAlert('Yeni şifreler birbiriyle eşleşmiyor.', 'error'); return; }
-      if (yeni === mevcut) { setAlert('Yeni şifre geçici şifreyle aynı olamaz.', 'error'); return; }
 
       var btn = document.getElementById('changeSubmit');
       var text = document.getElementById('changeSubmitText');
@@ -116,7 +115,7 @@
       try {
         var res = await API.apiRequest('/api/auth/change-password', {
           method: 'POST',
-          body: { mevcutSifre: mevcut, yeniSifre: yeni, yeniSifreTekrar: tekrar }
+          body: { yeniSifre: yeni, yeniSifreTekrar: tekrar }
         });
         if (res.token) API.replaceToken(res.token);
         setAlert(res.message || 'Şifreniz belirlendi.', 'success');

@@ -177,22 +177,31 @@ router.post('/change-password', authenticateToken, async (req, res) => {
     const currentPassword = String(req.body.mevcutSifre || '');
     const newPassword = String(req.body.yeniSifre || '');
     const confirmation = String(req.body.yeniSifreTekrar || '');
-    if (!currentPassword || !newPassword || !confirmation) {
-      return res.status(400).json({ message: 'Mevcut şifre, yeni şifre ve şifre tekrarı gereklidir.' });
+
+    const user = await prisma.kullanici.findUnique({
+      where: { kullaniciId: req.authenticatedUser.kullaniciId }
+    });
+    // İlk girişte (geçici şifreyle açılmış oturum) geçici şifre yeniden sorulmaz;
+    // kullanıcı az önce onunla giriş yaptı. Normal şifre değişiminde mevcut şifre zorunludur.
+    const forced = Boolean(user?.sifreDegistirmeZorunlu);
+    if ((!forced && !currentPassword) || !newPassword || !confirmation) {
+      return res.status(400).json({
+        message: forced ? 'Yeni şifre ve şifre tekrarı gereklidir.' : 'Mevcut şifre, yeni şifre ve şifre tekrarı gereklidir.'
+      });
     }
     if (newPassword !== confirmation) {
       return res.status(400).json({ message: 'Yeni şifreler eşleşmiyor.' });
     }
 
-    const user = await prisma.kullanici.findUnique({
-      where: { kullaniciId: req.authenticatedUser.kullaniciId }
-    });
     const validation = validateWebPassword(newPassword, user || {});
     if (!validation.valid) return res.status(400).json({ message: validation.message });
 
     const credentialHash = user?.sifreHash || user?.pinHash;
-    if (!credentialHash || !(await argon2.verify(credentialHash, currentPassword))) {
-      return res.status(401).json({ message: user?.sifreDegistirmeZorunlu ? 'Geçici şifre hatalı.' : 'Mevcut web şifresi hatalı.' });
+    if (!credentialHash) {
+      return res.status(401).json({ message: 'Mevcut web şifresi hatalı.' });
+    }
+    if (!forced && !(await argon2.verify(credentialHash, currentPassword))) {
+      return res.status(401).json({ message: 'Mevcut web şifresi hatalı.' });
     }
     if (await argon2.verify(credentialHash, newPassword)) {
       return res.status(400).json({ message: 'Yeni şifre mevcut şifreyle aynı olamaz.' });

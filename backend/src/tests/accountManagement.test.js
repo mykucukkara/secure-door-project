@@ -109,10 +109,11 @@ describe('Hesap açma, zorunlu şifre değişimi ve yönetici kuralları', () =>
   });
 
   test('şifre değiştirilince kilit kalkmalı ve yeni oturum anahtarı verilmeli', async () => {
+    // İlk girişte geçici şifre yeniden sorulmaz.
     const res = await request(app)
       .post('/api/auth/change-password')
       .set('Authorization', `Bearer ${userToken}`)
-      .send({ mevcutSifre: temporaryPassword, yeniSifre: newWebPassword, yeniSifreTekrar: newWebPassword });
+      .send({ yeniSifre: newWebPassword, yeniSifreTekrar: newWebPassword });
     expect(res.statusCode).toBe(200);
     expect(res.body.token).toBeTruthy();
     expect(res.body.user.sifreDegistirmeZorunlu).toBe(false);
