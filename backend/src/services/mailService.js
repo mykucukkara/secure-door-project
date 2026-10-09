@@ -34,8 +34,8 @@ function formatDateTr(date) {
 }
 
 // Panel yalnızca kampüs içinden erişilebilen bir adreste çalıştığı için tüm e-postalarda belirtilir.
-const AG_UYARISI = 'Sisteme yalnızca üniversite ağından (kampüs içi kablolu ağ veya Wi-Fi) erişilebilir; '
-  + 'bağlantılar kampüs dışından açılmaz.';
+const AG_UYARISI = 'Sisteme yalnızca üniversitenin kablolu (Ethernet) ağına bağlı bir bilgisayardan erişilebilir; '
+  + 'bağlantılar Wi-Fi, mobil veri veya kampüs dışından açılmaz.';
 
 function mailLayout(bodyHtml) {
   return `<!doctype html><html lang="tr"><body style="margin:0;background:#f3f5f9;font-family:Arial,Helvetica,sans-serif;color:#1d2433">
