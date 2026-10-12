@@ -80,13 +80,14 @@ function generateRandomPin() {
 }
 
 /**
- * PIN'ler kapıda kullanıcıyı tanımlamak için kullanılır; bu yüzden iki aktif
- * kullanıcı aynı PIN'e sahip olamaz.
+ * PIN'ler kapıda kullanıcıyı tanımlamak için kullanılır; bu yüzden iki kullanıcı
+ * aynı PIN'e sahip olamaz. Pasif/askıdaki kullanıcılar da sayılır: pasife alınan
+ * kişi şifresini bilmeye devam eder; aynı şifre başkasına verilirse onun adına
+ * kapıyı açabilirdi.
  */
 async function isPinInUse(pin, excludeUserId = null) {
   const users = await prisma.kullanici.findMany({
     where: {
-      durum: 'aktif',
       pinHash: { not: null },
       ...(excludeUserId != null ? { NOT: { kullaniciId: BigInt(excludeUserId) } } : {})
     },
