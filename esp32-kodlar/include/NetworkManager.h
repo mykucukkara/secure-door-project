@@ -14,6 +14,11 @@ public:
     void update();
 
     bool isConnected();
+    // Modul calisiyor ama Ethernet kablosu takili degil (yeniden baslatma cozmez).
+    bool isCableUnplugged();
+    // Kablo ve IP yerinde gorunse de soketler takilabilir; W5500'u sifirlayip
+    // DHCP'den bastan baglanir.
+    void forceRestart();
     bool isTimeSet() const;
     String localIpString() const;
     void printLocalTime();

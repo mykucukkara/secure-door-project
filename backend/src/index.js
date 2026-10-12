@@ -47,6 +47,7 @@ const PORT = process.env.PORT || 3000;
 const mqttService = require('./services/mqttService');
 const { initSifreCron } = require('./cron/sifreCron');
 const { initIhlalCron } = require('./cron/ihlalCron');
+const { initCihazBaglantiCron } = require('./cron/cihazBaglantiCron');
 
 validateRuntimeSecurity();
 app.disable('x-powered-by');
@@ -168,6 +169,7 @@ if (require.main === module) {
     }
     initSifreCron();
     initIhlalCron();
+    initCihazBaglantiCron();
 
     app.listen(PORT, () => {
         console.log(`🚀 Backend sunucusu ${PORT} portunda başlatıldı.`);

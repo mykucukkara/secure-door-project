@@ -47,6 +47,11 @@ void MqttManager::attemptReconnect() {
     }
 #endif
 
+#if defined(NETWORK_USE_ETHERNET) && NETWORK_USE_ETHERNET
+    // Önceki başarısız denemeden kalan W5500 soketini serbest bırak; aksi halde
+    // 8 soketlik çip zamanla dolar ve bağlantı isteği ağa hiç çıkmaz.
+    _networkClient.stop();
+#endif
     Serial.print("[MqttManager] Broker'a baglaniliyor... ");
     const std::string clientId = "SecureDoor_ESP32_" + std::to_string(DEVICE_ID);
 #if defined(MQTT_USERNAME) && defined(MQTT_PASSWORD)

@@ -71,6 +71,13 @@ static Durum lastLcdWorkflowState = Durum::ALARM;
 static bool lastAccessFailureWasConnection = false;
 static bool rtcSyncedFromNtp = false;
 
+// Bağlantı kurtarma: kablo ve IP yerinde görünürken W5500 soketleri takılırsa
+// cihaz sunucuya bir daha bağlanamıyordu (yalnızca elle reset düzeltiyordu).
+static constexpr uint32_t ETHERNET_RECOVERY_AFTER_MS = 2UL * 60UL * 1000UL;  // 2 dk: W5500'u sıfırla
+static constexpr uint32_t REBOOT_AFTER_OFFLINE_MS = 10UL * 60UL * 1000UL;    // 10 dk: cihazı yeniden başlat
+static uint32_t mqttDownSinceMs = 0;
+static uint32_t lastEthernetRecoveryMs = 0;
+
 enum class ConnectivityLcdState : uint8_t {
     UNKNOWN, ETHERNET_DOWN, MQTT_WAITING, ONLINE
 };
@@ -401,10 +408,47 @@ void setup() {
     Serial.println("[SYSTEM] Hazir.");
 }
 
+// Yeniden başlatma kapı kullanılırken yapılmaz (PIN girişi, açık kapı, sunucu yanıtı bekleniyor).
+static bool deviceIdleForRestart() {
+    return DoorState::mevcutDurumuAl() == Durum::BEKLEMEDE
+        && !pendingAccess.active
+        && !doorOpenAlarmActive
+        && !lastDoorPhysicallyOpen
+        && keypadInput.getPinLength() == 0;
+}
+
+static void recoverConnectivityIfStuck() {
+    const uint32_t now = millis();
+    // Kablo takılı değilse beklemek normaldir; sıfırlama/yeniden başlatma kabloyu getirmez.
+    if (mqttManager.isConnected() || network.isCableUnplugged()) {
+        mqttDownSinceMs = 0;
+        return;
+    }
+    if (mqttDownSinceMs == 0) {
+        mqttDownSinceMs = now;
+        lastEthernetRecoveryMs = now;
+        return;
+    }
+
+    if (now - mqttDownSinceMs >= REBOOT_AFTER_OFFLINE_MS && deviceIdleForRestart()) {
+        // Çevrimdışı kart/PIN listesi ve bekleyen olaylar kalıcı bellekte durur.
+        Serial.println("[SYSTEM] 10 dakikadir sunucuya baglanilamadi; cihaz yeniden baslatiliyor...");
+        delay(100);
+        ESP.restart();
+    }
+
+    // DHCP birkaç saniye bloke edebilir; kapı kullanılırken ertelenir.
+    if (now - lastEthernetRecoveryMs >= ETHERNET_RECOVERY_AFTER_MS && deviceIdleForRestart()) {
+        lastEthernetRecoveryMs = now;
+        network.forceRestart();
+    }
+}
+
 void loop() {
     network.update();
     syncRtcFromNtpIfNeeded();
     mqttManager.update();
+    recoverConnectivityIfStuck();
     updateConnectivityLcdStatus();
     accessControl.loop();
     processPendingCommands();

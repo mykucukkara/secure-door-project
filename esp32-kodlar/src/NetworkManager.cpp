@@ -123,6 +123,21 @@ bool NetworkManager::isConnected() {
         && Ethernet.linkStatus() != LinkOFF;
 }
 
+bool NetworkManager::isCableUnplugged() {
+    return Ethernet.hardwareStatus() != EthernetNoHardware
+        && Ethernet.linkStatus() == LinkOFF;
+}
+
+void NetworkManager::forceRestart() {
+    Serial.println("[Ethernet] Sunucuya uzun suredir baglanilamiyor; W5500 sifirlaniyor...");
+    _timeSynced = false;
+    _ntpRequestPending = false;
+    _ntpUdp.stop();
+    resetW5500();
+    Ethernet.init(ETHERNET_CS_PIN);
+    startConnection();
+}
+
 void NetworkManager::update() {
     const uint32_t now = millis();
 

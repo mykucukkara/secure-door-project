@@ -8,7 +8,9 @@
 #define MQTT_BROKER_PORT 1883
 #define DEVICE_ID 1
 #define DOOR_ID 1
-#define FIRMWARE_VERSION "1.0.0"
+// Surum include/FirmwareVersion.h'dan gelir; burada tanimlanirsa onu ezer ve
+// OTA yeni surumu goremez. Yalnizca cihaza ozel bir surum gerekiyorsa acin.
+//#define FIRMWARE_VERSION "1.0.0"
 
 // W5500 Lite kablolu Ethernet. DHCP ile otomatik IP alir. W5500 ve RFID
 // SCK/MISO/MOSI hatlarini ortak kullanir; CS pinleri farkli olmalidir.

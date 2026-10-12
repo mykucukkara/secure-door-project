@@ -57,28 +57,24 @@
     try {
       var cihazlar = await API.apiRequest('/api/cihazlar');
       var cihazTotal = cihazlar.length;
-      var onlineCount = cihazlar.filter(function (c) { return c.durum === 'cevrimici'; }).length;
+      var onlineCount = 0;
+      var offlineLastSeen = null;
 
       try {
-        var durumlar = await API.apiRequest('/api/cihaz-durumlari');
-        if (Array.isArray(durumlar) && durumlar.length) {
-          var latestByDevice = {};
-          durumlar.forEach(function (d) {
-            var id = d.cihazId || d.cihaz_id || d.id;
-            var ts = d.zaman || d.olusturulma || d.tarih || d.updatedAt;
-            if (!latestByDevice[id] || new Date(ts) > new Date(latestByDevice[id].ts || 0)) {
-              latestByDevice[id] = { durum: d.durum, ts: ts };
-            }
-          });
-          var onlineFromStatus = Object.keys(latestByDevice).filter(function (id) {
-            return latestByDevice[id].durum === 'cevrimici';
-          }).length;
-          if (onlineFromStatus) onlineCount = onlineFromStatus;
-        }
-      } catch (e2) { /* fall back to cihazlar.durum */ }
+        // Her cihazın son durumu; sunucu 90 sn sinyal alamazsa "cevrimdisi" yazar.
+        var durumlar = await API.apiRequest('/api/cihaz-durumlari?son=1');
+        (Array.isArray(durumlar) ? durumlar : []).forEach(function (d) {
+          if (d.cihazDurumTip === 'cevrimici') {
+            onlineCount += 1;
+          } else if (d.sonHeartbeat && (!offlineLastSeen || new Date(d.sonHeartbeat) > offlineLastSeen)) {
+            offlineLastSeen = new Date(d.sonHeartbeat);
+          }
+        });
+      } catch (e2) { /* durum bilgisi yoksa yalnızca toplam gösterilir */ }
 
       setText('statDevicesTotal', cihazTotal);
-      setText('statDevicesOnline', onlineCount + ' cihaz çevrimiçi');
+      setText('statDevicesOnline', onlineCount + ' cihaz çevrimiçi' +
+        (offlineLastSeen ? ' · çevrimdışı cihaz son görülme ' + UI.formatDateTime(offlineLastSeen) : ''));
     } catch (e) {
       setText('statDevicesTotal', '—');
       setText('statDevicesOnline', 'Yüklenemedi');
