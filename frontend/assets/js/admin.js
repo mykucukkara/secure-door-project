@@ -9,6 +9,7 @@
     edit: '<path d="M4 20h4L18.5 9.5a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5"></path><path d="M13.5 7.5l3 3"></path>',
     mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect><path d="m4 7 8 6 8-6"></path>',
     pin: '<circle cx="8" cy="15.5" r="4"></circle><path d="M11 12.5 19 4.5M16.3 7.2l2.3 2.3M19 4.5l1.6 1.6"></path>',
+    pinMail: '<rect x="3" y="7" width="18" height="11" rx="2"></rect><path d="M7 12.5h.01M10.5 12.5h.01M14 12.5h.01M17.5 12.5h.01"></path><path d="M15 3.5l2.5 2 2.5-2"></path>',
     trash: '<path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-.7 12.1a2 2 0 0 1-2 1.9H8.7a2 2 0 0 1-2-1.9L6 7"></path><path d="M10 11v6M14 11v6"></path>'
   };
 
@@ -106,6 +107,9 @@
         actions += iconBtn('temp', u.kullaniciId, 'Yeni geçici şifre gönder', ICON.mail);
       }
       actions += iconBtn('pin', u.kullaniciId, 'Kapı şifresini değiştir', ICON.pin);
+      if (u.eposta && u.durum === 'aktif') {
+        actions += iconBtn('pinmail', u.kullaniciId, '6 haneli kapı şifresini e-postayla gönder', ICON.pinMail);
+      }
       if (!self) actions += iconBtn('delete', u.kullaniciId, 'Sil / Pasife al', ICON.trash, 'icon-btn-danger');
 
       return '<tr>' +
@@ -124,11 +128,11 @@
       '<thead><tr><th>Ad Soyad</th><th>E-posta</th><th>Rol</th><th>Durum</th><th>Son Giriş</th><th>İşlemler</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>';
 
-    var handlers = { edit: openEditModal, temp: sendTemporaryPassword, pin: openPinModal, delete: deleteUser };
+    var handlers = { edit: openEditModal, temp: sendTemporaryPassword, pin: openPinModal, pinmail: sendDoorPin, delete: deleteUser };
     container.querySelectorAll('[data-action]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var fn = handlers[btn.getAttribute('data-action')];
-        if (fn) fn(btn.getAttribute('data-id'));
+        if (fn) fn(btn.getAttribute('data-id'), btn);
       });
     });
   }
@@ -291,6 +295,23 @@
   }
 
   /* ---------------- Kapı şifresi ---------------- */
+
+  // Mevcut 6 haneli kapı şifresini kişinin e-postasına gönderir; şifre değişmez.
+  async function sendDoorPin(id, btn) {
+    var u = findUser(id);
+    if (!u) return;
+    if (!window.confirm(userLabel(id) + ' kullanıcısının mevcut 6 haneli kapı şifresi ' + u.eposta +
+      ' adresine gönderilecek. Şifre değişmez. Devam edilsin mi?')) return;
+    if (btn) btn.disabled = true;
+    try {
+      var res = await API.apiRequest('/api/kullanicilar/' + encodeURIComponent(id) + '/kapi-sifresi-gonder', { method: 'POST' });
+      UI.toast(res.mesaj || 'Kapı şifresi gönderildi.', 'success');
+    } catch (err) {
+      UI.toast(err.message || 'Kapı şifresi gönderilemedi.', 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
 
   function setPinAlert(message, type) {
     var el = document.getElementById('pinEditAlert');

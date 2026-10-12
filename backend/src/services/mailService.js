@@ -98,9 +98,26 @@ async function sendAccountInviteEmail({ to, name, temporaryPassword, loginUrl, e
   return true;
 }
 
+/** Yöneticinin isteğiyle kullanıcının mevcut (kalıcı) kapı şifresini iletir. */
+async function sendDoorPinEmail({ to, name, pin }) {
+  if (!isMailConfigured()) return false;
+  await createTransport().sendMail({
+    from: process.env.SMTP_FROM,
+    to,
+    subject: 'SecureLab kapı şifreniz',
+    text: `Sayın ${name || 'kullanıcı'},\n\nLaboratuvar kapısındaki tuş takımı için 6 haneli kapı şifreniz: ${pin}\n\nŞifrenizi kimseyle paylaşmayın. Dilerseniz panelde Profilim sayfasından değiştirebilirsiniz. Bu e-postayı okuduktan sonra silmenizi öneririz.\n\n${AG_UYARISI}`,
+    html: mailLayout(`<p>Sayın ${escapeHtml(name || 'kullanıcı')},</p>
+<p>Laboratuvar kapısındaki tuş takımı için 6 haneli kapı şifreniz:</p>
+<p style="font-family:Consolas,monospace;font-size:26px;font-weight:bold;letter-spacing:.3em;background:#f3f5f9;border:1px solid #e1e5ee;border-radius:6px;padding:12px 16px;text-align:center">${escapeHtml(pin)}</p>
+<p>Şifrenizi kimseyle paylaşmayın. Dilerseniz panelde <em>Profilim</em> sayfasından değiştirebilirsiniz. Bu e-postayı okuduktan sonra silmenizi öneririz.</p>`)
+  });
+  return true;
+}
+
 module.exports = {
   isMailConfigured,
   sendPasswordResetEmail,
   sendAccountInviteEmail,
+  sendDoorPinEmail,
   escapeHtml
 };

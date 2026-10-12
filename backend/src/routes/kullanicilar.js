@@ -7,6 +7,7 @@ const {
 } = require('../services/pinService');
 const { listPinHistory } = require('../services/pinHistoryService');
 const { writeAudit } = require('../services/auditService');
+const { isMailConfigured, sendDoorPinEmail } = require('../services/mailService');
 const {
   createInvitedUser,
   issueTemporaryPassword,
@@ -366,6 +367,50 @@ router.get('/:id/kapi-sifresi', requireSelfOrAdmin, async (req, res) => {
     return res.json(result);
   } catch (error) {
     return sendPinError(res, error);
+  }
+});
+
+// Yönetici: kullanıcının mevcut kapı şifresini kendi e-posta adresine gönderir (şifre değişmez).
+router.post('/:id/kapi-sifresi-gonder', requireAdmin, async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+    if (id == null) return res.status(400).json({ hata: 'Geçersiz kullanıcı.' });
+    const user = await prisma.kullanici.findUnique({ where: { kullaniciId: id } });
+    if (!user) return res.status(404).json({ hata: 'Kullanıcı bulunamadı.' });
+    if (user.durum !== 'aktif') return res.status(409).json({ hata: 'Pasif kullanıcıya kapı şifresi gönderilemez.' });
+    if (!user.eposta) return res.status(400).json({ hata: 'Kullanıcının e-posta adresi yok.' });
+    if (!isMailConfigured()) return res.status(503).json({ hata: 'E-posta sunucusu (SMTP) tanımlı değil.' });
+
+    const { pin } = await getCurrentPin(id);
+    if (!pin) {
+      return res.status(409).json({
+        hata: 'Kullanıcının gönderilebilecek bir kapı şifresi yok. Önce "Kapı şifresini değiştir" ile yeni şifre belirleyin.'
+      });
+    }
+
+    try {
+      await sendDoorPinEmail({
+        to: user.eposta,
+        name: [user.unvan, user.ad, user.soyad].filter(Boolean).join(' '),
+        pin
+      });
+    } catch (error) {
+      console.error('[KAPI-SIFRESI] E-posta gönderilemedi:', error.message);
+      return res.status(502).json({ hata: 'E-posta gönderilemedi. Lütfen daha sonra tekrar deneyin.' });
+    }
+
+    await writeAudit({
+      actorId: req.user.kullaniciId,
+      action: 'guncelle',
+      tableName: 'kapi_sifre_gecmisi',
+      recordId: id,
+      after: { kapiSifresiEpostaylaGonderildi: true, eposta: user.eposta }
+    });
+    return res.json({ mesaj: `Kapı şifresi ${user.eposta} adresine gönderildi.`, eposta: user.eposta });
+  } catch (error) {
+    if (error.statusCode) return sendPinError(res, error);
+    console.error('Kapı şifresi gönderilirken hata:', error);
+    return res.status(500).json({ hata: 'Sunucu hatası' });
   }
 });
 
