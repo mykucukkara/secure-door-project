@@ -35,6 +35,7 @@ bool CardReader::okuyucuyuBaslat() {
     _mfrc522.PCD_AntennaOn();
     _mfrc522.PCD_SetAntennaGain(MFRC522::RxGain_max);
     byte version = _mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
+    _sonVersionReg = version;
     const bool bagli = !(version == 0x00 || version == 0xFF);
     if (bagli) {
         Serial.printf("[CardReader] MFRC522 hazir (VersionReg=0x%02X).\n", version);
@@ -80,6 +81,7 @@ void CardReader::update() {
     if (simdi - _sonSaglikKontrolu >= 3000) {
         _sonSaglikKontrolu = simdi;
         const byte version = _mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
+        _sonVersionReg = version;
         if (version == 0x00 || version == 0xFF) {
             _status = ReaderStatus::DISCONNECTED;
             _sonBaglantiDenemesi = simdi;
@@ -97,6 +99,7 @@ void CardReader::update() {
     }
 
     std::string uid = uidToString(_mfrc522.uid.uidByte, _mfrc522.uid.size);
+    _okumaSayisi++;
 
     // --- DETAYLI SERI EKRAN CIKTISI ---
     MFRC522::PICC_Type piccType = _mfrc522.PICC_GetType(_mfrc522.uid.sak);

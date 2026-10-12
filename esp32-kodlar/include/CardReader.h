@@ -31,7 +31,11 @@ public:
     bool hasNewRead() const;                    
     std::string getLastCardId() const;           
     unsigned long getLastReadTimestamp() const;   
-    ReaderStatus getStatus() const;               
+    ReaderStatus getStatus() const;
+    // Teşhis: RC522'nin son okunan VersionReg değeri (0x00/0xFF = SPI yanıtı yok)
+    // ve açılıştan beri okunan kart sayısı. Sağlık mesajıyla sunucuya gider.
+    uint8_t getLastVersionReg() const { return _sonVersionReg; }
+    uint32_t getReadCount() const { return _okumaSayisi; }
 
 #ifdef DEBUG_FAKE_CARD
     void injectFakeRead(const std::string &fakeUid, unsigned long timestampMs);
@@ -65,6 +69,8 @@ private:
     bool _newReadFlag = false;
     unsigned long _sonBaglantiDenemesi = 0;
     unsigned long _sonSaglikKontrolu = 0;
+    uint8_t _sonVersionReg = 0;
+    uint32_t _okumaSayisi = 0;
 
     bool okuyucuyuBaslat();
 

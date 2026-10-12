@@ -105,7 +105,7 @@ static const char *resetReasonText() {
     }
 }
 
-bool MqttManager::publishHeartbeat(int cihazId) {
+bool MqttManager::publishHeartbeat(int cihazId, int rfidVersion, uint32_t kartOkumaSayisi) {
     if (!_mqttClient.connected()) return false;
 
     JsonDocument doc;
@@ -123,6 +123,13 @@ bool MqttManager::publishHeartbeat(int cihazId) {
     // Sunucu yeniden başlamaları (watchdog, kurtarma, elektrik) buradan izler.
     doc["calisma_suresi_sn"] = millis() / 1000UL;
     doc["acilis_nedeni"] = resetReasonText();
+    if (rfidVersion >= 0) {
+        char surum[5];
+        snprintf(surum, sizeof(surum), "0x%02X", rfidVersion);
+        doc["rfid_versiyon"] = surum;
+        doc["rfid_yanit"] = !(rfidVersion == 0x00 || rfidVersion == 0xFF);
+        doc["kart_okuma_sayisi"] = kartOkumaSayisi;
+    }
 
     std::string payload;
     serializeJson(doc, payload);

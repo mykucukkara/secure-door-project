@@ -84,7 +84,8 @@ public:
     void update();
 
     bool publishEntryEvent(const EntryEvent &event);
-    bool publishHeartbeat(int cihazId = 1);
+    // rfidVersion: RC522 VersionReg (0x00/0xFF = okuyucu yanıt vermiyor), -1 = bilinmiyor.
+    bool publishHeartbeat(int cihazId = 1, int rfidVersion = -1, uint32_t kartOkumaSayisi = 0);
     bool publishDoorStatus(bool isOpen);
     bool publishPasswordAck(bool success);
     bool publishOtaStatus(

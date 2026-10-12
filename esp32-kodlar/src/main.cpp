@@ -499,7 +499,7 @@ void loop() {
 
     const uint32_t now = millis();
     if (mqttManager.isConnected() && now - lastHeartbeatMs >= 30000) {
-        mqttManager.publishHeartbeat(DEVICE_ID);
+        mqttManager.publishHeartbeat(DEVICE_ID, cardReader.getLastVersionReg(), cardReader.getReadCount());
         lastHeartbeatMs = now;
     }
 
