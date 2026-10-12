@@ -57,18 +57,38 @@ function Nabiz([bool]$IstasyonBagli, [string]$Port, [switch]$Hemen) {
     }
 }
 
+# ESP32 kartlarindaki USB-seri yongalarin USB uretici kimlikleri (VID). Ad yerine
+# VID'ye bakilir: Windows dili Turkce iken genel surucu portu "USB Seri Cihaz (COMx)"
+# diye adlandirir ve ada gore arama bunu kacirir.
+#   10C4 = Silicon Labs CP210x, 1A86 = WCH CH340/CH9102, 0403 = FTDI, 303A = Espressif (yerel USB)
+$BilinenVidler = '10C4', '1A86', '0403', '303A'
+$script:sonPortListesi = $null
+
 function Bul-IstasyonPortu {
-    # Yalnizca bilinen USB-seri kopru yongalari (ESP32 gelistirme kartlarinda kullanilanlar).
-    $portlar = Get-CimInstance Win32_PnPEntity -Filter "PNPClass='Ports'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -match '\((COM\d+)\)' } |
+    $portlar = @(Get-CimInstance Win32_PnPEntity -Filter "PNPClass='Ports'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '\(COM\d+\)' } |
         ForEach-Object {
+            $vid = ([regex]::Match([string]$_.PNPDeviceID, 'VID_([0-9A-Fa-f]{4})')).Groups[1].Value.ToUpper()
             [pscustomobject]@{
                 Port    = ([regex]::Match($_.Name, 'COM\d+')).Value
                 Ad      = $_.Name
-                Oncelik = if ($_.Name -match 'CP210|CH34|CH91|FTDI|USB Serial|USB-SERIAL|USB JTAG') { 0 } else { 1 }
+                Vid     = $vid
+                Usb     = ([string]$_.PNPDeviceID) -like 'USB\*' -or ([string]$_.PNPDeviceID) -like 'FTDIBUS\*'
+                Bilinen = $BilinenVidler -contains $vid
             }
-        } | Where-Object { $_.Oncelik -eq 0 } | Sort-Object Port
-    return $portlar | Select-Object -First 1
+        })
+
+    # Bulunamazsa teshis icin gorulen portlari (degistikce) kayda yaz.
+    $ozet = ($portlar | ForEach-Object { "$($_.Port)[$($_.Vid)] $($_.Ad)" }) -join '; '
+    if ($ozet -ne $script:sonPortListesi) {
+        $script:sonPortListesi = $ozet
+        Yaz ("Gorulen seri portlar: " + $(if ($ozet) { $ozet } else { 'yok (USB-seri surucusu kurulu olmayabilir)' }))
+    }
+
+    # Once bilinen yongalar, yoksa herhangi bir USB seri port (Bluetooth/anakart portlari haric).
+    $aday = $portlar | Where-Object { $_.Bilinen } | Sort-Object Port | Select-Object -First 1
+    if (-not $aday) { $aday = $portlar | Where-Object { $_.Usb } | Sort-Object Port | Select-Object -First 1 }
+    return $aday
 }
 
 Yaz "Kopru basladi. Sunucu: $Sunucu, ad: $Ad"
