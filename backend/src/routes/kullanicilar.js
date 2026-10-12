@@ -3,7 +3,8 @@ const prisma = require('../config/prisma');
 const {
   refreshSingleUserPin,
   setUserPin,
-  getCurrentPin
+  getCurrentPin,
+  ensureUniquePinOnReactivation
 } = require('../services/pinService');
 const { listPinHistory } = require('../services/pinHistoryService');
 const { writeAudit } = require('../services/auditService');
@@ -182,6 +183,52 @@ router.post('/:id/gecici-sifre', requireAdmin, async (req, res) => {
   }
 });
 
+/**
+ * Yeniden aktifleşen kullanıcının kapı şifresi başka bir aktif kullanıcıyla çakışıyorsa
+ * yeni şifre verir ve kişiye e-postayla bildirir. Şifre değişmediyse null döner.
+ * E-posta gönderilemezse yönetici iletebilsin diye yeni şifre yanıtta bir kez döner.
+ */
+async function yenidenAktiflestirmePinKontrolu(user, actorId) {
+  let sonuc;
+  try {
+    sonuc = await ensureUniquePinOnReactivation(user.kullaniciId);
+  } catch (error) {
+    console.error('[KAPI-SIFRESI] Yeniden aktifleştirme kontrolü başarısız:', error.message);
+    return { yenilendi: false, uyari: 'Kapı şifresi çakışma kontrolü yapılamadı; gerekirse kapı şifresini elle yenileyin.' };
+  }
+  if (!sonuc.yenilendi) return null;
+
+  let mailGonderildi = false;
+  if (user.eposta && isMailConfigured()) {
+    try {
+      await sendDoorPinEmail({
+        to: user.eposta,
+        name: [user.unvan, user.ad, user.soyad].filter(Boolean).join(' '),
+        pin: sonuc.yeniPin,
+        yenilendi: true
+      });
+      mailGonderildi = true;
+    } catch (error) {
+      console.error('[KAPI-SIFRESI] Yenilenen şifre e-postası gönderilemedi:', error.message);
+    }
+  }
+
+  await writeAudit({
+    actorId,
+    action: 'guncelle',
+    tableName: 'kapi_sifre_gecmisi',
+    recordId: user.kullaniciId,
+    after: { pin: 'yeniden_aktiflestirmede_yenilendi', sebep: sonuc.sebep, epostaGonderildi: mailGonderildi }
+  });
+
+  return {
+    yenilendi: true,
+    mailGonderildi,
+    eposta: user.eposta || null,
+    ...(mailGonderildi ? {} : { yeniPin: sonuc.yeniPin })
+  };
+}
+
 router.put('/:id', requireAdmin, async (req, res) => {
   try {
     const id = parseId(req.params.id);
@@ -256,6 +303,12 @@ router.put('/:id', requireAdmin, async (req, res) => {
       });
       return updatedUser;
     });
+
+    // Yeniden aktifleşen kişinin kapı şifresi, pasifken başkasına verilmiş olabilir.
+    if (durumDegisiyor && durum === 'aktif') {
+      const pinKontrol = await yenidenAktiflestirmePinKontrolu(user, req.user.kullaniciId);
+      if (pinKontrol) return res.json({ ...user, kapiSifresi: pinKontrol });
+    }
     return res.json(user);
   } catch (error) {
     console.error('Kullanıcı güncellenirken hata:', error);

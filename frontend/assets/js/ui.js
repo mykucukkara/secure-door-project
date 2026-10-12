@@ -68,6 +68,7 @@
     otomatik: 'Günlük otomatik (eski)',
     yonetici: 'Yönetici tarafından',
     baslangic: 'Başlangıç kaydı',
+    cakisma: 'Çakışma nedeniyle yenilendi',
     eski_kayit: 'Geçiş öncesi kayıt'
   };
 

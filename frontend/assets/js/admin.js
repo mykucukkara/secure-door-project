@@ -245,9 +245,10 @@
     submitBtn.textContent = 'Kaydediliyor…';
 
     try {
-      await API.apiRequest('/api/kullanicilar/' + encodeURIComponent(state.editingId), { method: 'PUT', body: body });
+      var res = await API.apiRequest('/api/kullanicilar/' + encodeURIComponent(state.editingId), { method: 'PUT', body: body });
       UI.closeModal(document.getElementById('userModal'));
       UI.toast('Kullanıcı güncellendi.', 'success');
+      showReactivationPinResult(res && res.kapiSifresi, body.ad + ' ' + body.soyad);
       loadUsers();
     } catch (err) {
       setFormAlert(err.message || 'İşlem gerçekleştirilemedi.', 'error');
@@ -255,6 +256,31 @@
       submitBtn.disabled = false;
       submitBtn.textContent = originalText;
     }
+  }
+
+  // Yeniden aktifleştirilen kişinin kapı şifresi başkasıyla çakıştıysa sunucu yenisini verir.
+  function showReactivationPinResult(sonuc, label) {
+    if (!sonuc) return;
+    if (!sonuc.yenilendi) {
+      if (sonuc.uyari) UI.toast(sonuc.uyari, 'warning');
+      return;
+    }
+    if (sonuc.mailGonderildi) {
+      UI.toast('Kapı şifresi başka bir kullanıcıyla çakıştığı için yenilendi; yeni şifre ' + sonuc.eposta + ' adresine gönderildi.', 'info', 9000);
+      return;
+    }
+    document.getElementById('credentialsModalSubtitle').textContent = label;
+    document.getElementById('credentialsModalTitle').textContent = 'Kapı şifresi yenilendi — e-posta gönderilemedi';
+    document.getElementById('credentialsBody').innerHTML = '<div class="credentials-callout">' +
+      '<div class="credentials-callout-warning"><span>Kapı şifresi başka bir kullanıcıyla çakıştığı için yenilendi ancak e-posta gönderilemedi. ' +
+      'Yeni şifreyi kişiye güvenli bir yoldan iletin; bu şifre yalnızca şimdi gösterilir.</span></div>' +
+      '<div class="credential-row"><div><div class="credential-row-label">Yeni kapı şifresi</div>' +
+      '<div class="credential-row-value" id="credReactivatedPin">' + UI.escapeHtml(sonuc.yeniPin || '—') + '</div></div>' +
+      '<button type="button" class="copy-btn" id="copyReactivatedPinBtn">Kopyala</button></div></div>';
+    UI.wireCopyButton(document.getElementById('copyReactivatedPinBtn'), function () {
+      return document.getElementById('credReactivatedPin').textContent;
+    });
+    UI.openModal(document.getElementById('credentialsModal'));
   }
 
   /* ---------------- Geçici şifre ---------------- */

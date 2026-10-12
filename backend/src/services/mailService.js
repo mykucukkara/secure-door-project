@@ -98,16 +98,23 @@ async function sendAccountInviteEmail({ to, name, temporaryPassword, loginUrl, e
   return true;
 }
 
-/** Yöneticinin isteğiyle kullanıcının mevcut (kalıcı) kapı şifresini iletir. */
-async function sendDoorPinEmail({ to, name, pin }) {
+/**
+ * Kullanıcının kapı şifresini iletir: yöneticinin isteğiyle mevcut şifre ya da
+ * (yenilendi=true) hesap yeniden aktifleşince çakışma nedeniyle verilen yeni şifre.
+ */
+async function sendDoorPinEmail({ to, name, pin, yenilendi = false }) {
   if (!isMailConfigured()) return false;
+  const giris = yenilendi
+    // Eski şifrenin başka birinde olduğu söylenmez; kişi o şifreyi zaten biliyor.
+    ? 'Hesabınız yeniden etkinleştirildi ve güvenlik nedeniyle size yeni bir kapı şifresi tanımlandı; eski şifreniz artık geçersizdir. Laboratuvar kapısındaki tuş takımı için yeni 6 haneli kapı şifreniz:'
+    : 'Laboratuvar kapısındaki tuş takımı için 6 haneli kapı şifreniz:';
   await createTransport().sendMail({
     from: process.env.SMTP_FROM,
     to,
-    subject: 'SecureLab kapı şifreniz',
-    text: `Sayın ${name || 'kullanıcı'},\n\nLaboratuvar kapısındaki tuş takımı için 6 haneli kapı şifreniz: ${pin}\n\nŞifrenizi kimseyle paylaşmayın. Dilerseniz panelde Profilim sayfasından değiştirebilirsiniz. Bu e-postayı okuduktan sonra silmenizi öneririz.\n\n${AG_UYARISI}`,
+    subject: yenilendi ? 'SecureLab kapı şifreniz yenilendi' : 'SecureLab kapı şifreniz',
+    text: `Sayın ${name || 'kullanıcı'},\n\n${giris} ${pin}\n\nŞifrenizi kimseyle paylaşmayın. Dilerseniz panelde Profilim sayfasından değiştirebilirsiniz. Bu e-postayı okuduktan sonra silmenizi öneririz.\n\n${AG_UYARISI}`,
     html: mailLayout(`<p>Sayın ${escapeHtml(name || 'kullanıcı')},</p>
-<p>Laboratuvar kapısındaki tuş takımı için 6 haneli kapı şifreniz:</p>
+<p>${escapeHtml(giris)}</p>
 <p style="font-family:Consolas,monospace;font-size:26px;font-weight:bold;letter-spacing:.3em;background:#f3f5f9;border:1px solid #e1e5ee;border-radius:6px;padding:12px 16px;text-align:center">${escapeHtml(pin)}</p>
 <p>Şifrenizi kimseyle paylaşmayın. Dilerseniz panelde <em>Profilim</em> sayfasından değiştirebilirsiniz. Bu e-postayı okuduktan sonra silmenizi öneririz.</p>`)
   });

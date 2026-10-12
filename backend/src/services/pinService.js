@@ -344,6 +344,25 @@ async function setUserPin(kullaniciId, { pin, kaynak = 'kullanici' } = {}) {
   };
 }
 
+/**
+ * Pasif kullanıcı yeniden aktifleşince kapı şifresinin benzersizliğini sağlar.
+ * Benzersizlik kontrolü yalnızca aktif kullanıcılara bakar; kişi pasifken başka
+ * biri aynı şifreyi seçmiş olabilir. Çakışma varsa (ya da şifre çözülemediği için
+ * doğrulanamıyorsa) kişiye yeni rastgele şifre verilir.
+ * @returns {Promise<{ yenilendi: boolean, yeniPin?: string, sebep?: 'cakisma'|'dogrulanamadi' }>}
+ */
+async function ensureUniquePinOnReactivation(kullaniciId) {
+  const userId = BigInt(kullaniciId);
+  const user = await prisma.kullanici.findUnique({ where: { kullaniciId: userId }, select: { pinHash: true } });
+  if (!user?.pinHash) return { yenilendi: false };
+
+  const { pin } = await readActivePin(userId);
+  if (pin && !(await isPinInUse(pin, userId))) return { yenilendi: false };
+
+  const sonuc = await setUserPin(userId, { kaynak: 'cakisma' });
+  return { yenilendi: true, yeniPin: sonuc.yeniPin, sebep: pin ? 'cakisma' : 'dogrulanamadi' };
+}
+
 /** Geriye dönük uyumluluk: rastgele yeni kalıcı PIN üretir. */
 async function refreshSingleUserPin(kullaniciId, kaynak = 'manuel') {
   return setUserPin(kullaniciId, { kaynak });
@@ -425,6 +444,7 @@ module.exports = {
   pushOfflineListToESP32,
   generateOfflineListForDevice,
   setUserPin,
+  ensureUniquePinOnReactivation,
   getCurrentPin,
   refreshAllUsersPins,
   refreshSingleUserPin
