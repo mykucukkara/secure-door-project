@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <esp_system.h>
+#include <esp_task_wdt.h>
 #include <sys/time.h>
 #include <time.h>
 
@@ -77,6 +78,25 @@ static constexpr uint32_t ETHERNET_RECOVERY_AFTER_MS = 2UL * 60UL * 1000UL;  // 
 static constexpr uint32_t REBOOT_AFTER_OFFLINE_MS = 10UL * 60UL * 1000UL;    // 10 dk: cihazı yeniden başlat
 static uint32_t mqttDownSinceMs = 0;
 static uint32_t lastEthernetRecoveryMs = 0;
+
+// Donanım watchdog'u: ana döngü bu süre ilerlemezse (ör. Ethernet kütüphanesi yanıt
+// vermeyen W5500'u beklerken kilitlenirse) çip kendini yeniden başlatır. Uzun ama
+// meşru beklemeler (DHCP ~6 sn, MQTT bağlantısı ~15 sn) bu sürenin altında kalır.
+static constexpr uint32_t LOOP_WATCHDOG_TIMEOUT_S = 60;
+
+static void startLoopWatchdog() {
+#if ESP_IDF_VERSION_MAJOR >= 5
+    const esp_task_wdt_config_t config = {
+        .timeout_ms = LOOP_WATCHDOG_TIMEOUT_S * 1000,
+        .idle_core_mask = 0,
+        .trigger_panic = true
+    };
+    esp_task_wdt_reconfigure(&config);
+#else
+    esp_task_wdt_init(LOOP_WATCHDOG_TIMEOUT_S, true);
+#endif
+    esp_task_wdt_add(nullptr);
+}
 
 enum class ConnectivityLcdState : uint8_t {
     UNKNOWN, ETHERNET_DOWN, MQTT_WAITING, ONLINE
@@ -405,6 +425,7 @@ void setup() {
 
     DoorState::durumGecisiYap(Durum::BEKLEMEDE);
     alertSystem.playSuccess();
+    startLoopWatchdog();
     Serial.println("[SYSTEM] Hazir.");
 }
 
@@ -445,6 +466,7 @@ static void recoverConnectivityIfStuck() {
 }
 
 void loop() {
+    esp_task_wdt_reset();
     network.update();
     syncRtcFromNtpIfNeeded();
     mqttManager.update();

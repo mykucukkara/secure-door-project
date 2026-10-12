@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <algorithm>
 #include <cctype>
+#include <esp_task_wdt.h>
 
 #include "config.h"
 #include "FirmwareVersion.h"
@@ -158,6 +159,8 @@ bool OtaUpdater::performEthernetDownload(const DeviceCommand &command) {
     int lastProgress = -10;
     uint32_t lastDataAt = millis();
     while (written < command.firmwareSize) {
+        // İndirme ana döngüyü onlarca saniye tutabilir; watchdog'u besle.
+        esp_task_wdt_reset();
         const int available = client.available();
         if (available > 0) {
             const size_t wanted = std::min(
