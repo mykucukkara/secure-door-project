@@ -119,13 +119,19 @@ function pushOfflineListToESP32(cihazId, userPinList, replace = true) {
   });
 }
 
+// Çevrimdışı listeye girecek kartlar: yetkisi ve kartın kendisi aktif olanlar.
+const AKTIF_KARTLAR = {
+  where: { durum: 'aktif', kart: { durum: 'aktif' } },
+  select: { kartUid: true }
+};
+
 async function getEligibleUsersForDoor(kapiId) {
   const rules = await prisma.yetkiKurali.findMany({
     where: { kapiId, aktif: true },
     include: {
       kullanici: {
         include: {
-          kartYetkilendirmeler: { where: { durum: 'aktif' }, take: 1 }
+          kartYetkilendirmeler: AKTIF_KARTLAR
         }
       },
       grup: {
@@ -134,7 +140,7 @@ async function getEligibleUsersForDoor(kapiId) {
             include: {
               kullanici: {
                 include: {
-                  kartYetkilendirmeler: { where: { durum: 'aktif' }, take: 1 }
+                  kartYetkilendirmeler: AKTIF_KARTLAR
                 }
               }
             }
@@ -146,9 +152,10 @@ async function getEligibleUsersForDoor(kapiId) {
 
   if (!rules.length) {
     const users = await prisma.kullanici.findMany({
-      where: { durum: 'aktif', pinHash: { not: null } },
+      // PIN'i ya da aktif kartı olan herkes (kartı olup PIN'i olmayanlar da çevrimdışı girebilsin).
+      where: { durum: 'aktif', OR: [{ pinHash: { not: null } }, { kartYetkilendirmeler: { some: { durum: 'aktif' } } }] },
       include: {
-        kartYetkilendirmeler: { where: { durum: 'aktif' }, take: 1 }
+        kartYetkilendirmeler: AKTIF_KARTLAR
       }
     });
     return users.map((user) => ({
@@ -208,21 +215,29 @@ async function generateOfflineListForDevice(cihazId, rawPinsByUserId = new Map()
   // "Offline listeyi yeniden gönder" işlemi herkesin güncel şifresini içerir.
   const fillMissingFromHistory = replace;
 
+  // Kısa alan adları: liste tek MQTT mesajıyla gider (cihaz tamponu 16 KB).
+  //   u: kullanıcı, p: PIN, k: aktif kart UID'leri, g/s/e: gün maskesi ve saat aralığı.
+  // Cihaz PIN ve kartları kendi tuzuyla özetleyip saklar; düz metin tutmaz.
   for (const { user, rule } of eligibleUsers) {
     const userId = user.kullaniciId.toString();
+    // Kısmi güncellemede (tek kişinin PIN'i değişti) yalnızca o kişi gönderilir.
+    if (!fillMissingFromHistory && !rawPinsByUserId.has(userId)) continue;
+
     let rawPin = rawPinsByUserId.get(userId);
     if (!rawPin && fillMissingFromHistory) {
       rawPin = (await readActivePin(user.kullaniciId)).pin;
     }
-    if (!rawPin) continue;
-    list.push({
-      u: userId,
-      p: rawPin,
-      kartUid: user.kartYetkilendirmeler?.[0]?.kartUid || null,
-      gunMaskesi: rule.gunMaskesi || 127,
-      saatBaslangic: rule.saatBaslangic || '00:00',
-      saatBitis: rule.saatBitis || '23:59'
-    });
+    const kartlar = (user.kartYetkilendirmeler || []).map((y) => y.kartUid).filter(Boolean);
+    if (!rawPin && !kartlar.length) continue;
+
+    const entry = { u: userId };
+    if (rawPin) entry.p = rawPin;
+    if (kartlar.length) entry.k = kartlar;
+    const g = rule.gunMaskesi || 127;
+    const s = rule.saatBaslangic || '00:00';
+    const e = rule.saatBitis || '23:59';
+    if (g !== 127 || s !== '00:00' || e !== '23:59') Object.assign(entry, { g, s, e });
+    list.push(entry);
   }
 
   const version = await prisma.offlineListeSurumu.create({
@@ -232,11 +247,11 @@ async function generateOfflineListForDevice(cihazId, rawPinsByUserId = new Map()
       uyeler: {
         create: list.map((entry) => ({
           kullaniciId: BigInt(entry.u),
-          kartUid: entry.kartUid,
-          pinHmac: crypto.createHmac('sha256', deviceSecret).update(entry.p).digest('hex'),
-          gunMaskesi: entry.gunMaskesi,
-          saatBaslangic: entry.saatBaslangic,
-          saatBitis: entry.saatBitis
+          kartUid: entry.k?.[0] || null,
+          pinHmac: entry.p ? crypto.createHmac('sha256', deviceSecret).update(entry.p).digest('hex') : null,
+          gunMaskesi: entry.g ?? 127,
+          saatBaslangic: entry.s ?? '00:00',
+          saatBitis: entry.e ?? '23:59'
         }))
       }
     },

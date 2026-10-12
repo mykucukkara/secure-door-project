@@ -48,6 +48,7 @@ const mqttService = require('./services/mqttService');
 const { initSifreCron } = require('./cron/sifreCron');
 const { initIhlalCron } = require('./cron/ihlalCron');
 const { initCihazBaglantiCron } = require('./cron/cihazBaglantiCron');
+const { degisiklikteListeyiGonder, initOfflineListeCron } = require('./services/offlineListeSenkronService');
 
 validateRuntimeSecurity();
 app.disable('x-powered-by');
@@ -118,6 +119,16 @@ app.use('/api/auth', authRotalari);
 app.use('/api/public', publicRotalari);
 app.use('/api/firmware', firmwareRotalari);
 
+// Kapıdaki çevrimdışı yetki listesini etkileyen değişikliklerden sonra liste cihaza yeniden gönderilir.
+app.use([
+    '/api/kartlar',
+    '/api/kart-yetkilendirmeler',
+    '/api/kullanicilar',
+    '/api/yetki-kurallari',
+    '/api/gruplar',
+    '/api/cihaz-kapi-atamalar'
+], degisiklikteListeyiGonder);
+
 // Endpoint Bağlantıları
 app.use('/api/birimler', birimRotalari);
 
@@ -170,6 +181,7 @@ if (require.main === module) {
     initSifreCron();
     initIhlalCron();
     initCihazBaglantiCron();
+    initOfflineListeCron();
 
     app.listen(PORT, () => {
         console.log(`🚀 Backend sunucusu ${PORT} portunda başlatıldı.`);

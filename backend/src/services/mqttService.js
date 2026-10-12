@@ -57,6 +57,10 @@ class MqttService {
   constructor() {
     this.client = null;
     this.connected = false;
+    // Cihazın son bildirdiği çalışma süresi (sn); azalırsa cihaz yeniden başlamıştır.
+    this.sonCalismaSuresi = new Map();
+    // Son sağlık mesajının geliş zamanı; 90 sn'den uzun boşluk = tekrar bağlandı.
+    this.sonSaglikZamani = new Map();
   }
 
   connect() {
@@ -75,6 +79,8 @@ class MqttService {
       this.connected = true;
       console.log(`[MQTT] Broker'a bağlandı: ${brokerUrl}`);
       this.subscribeToTopics();
+      // Sunucu kapalıyken yapılan değişiklikler kaçmasın diye cihaz listeleri tazelenir.
+      require('./offlineListeSenkronService').listeGonderimiPlanla('sunucu MQTT bağlantısı');
     });
 
     this.client.on('reconnect', () => console.log('[MQTT] Yeniden bağlanmaya çalışılıyor...'));
@@ -194,9 +200,51 @@ class MqttService {
     }
   }
 
+  /**
+   * Cihazın yeniden başladığını (çalışma süresi azaldı) ya da çevrimdışıyken
+   * tekrar bağlandığını yakalar: yeniden başlamayı olay olarak kaydeder ve
+   * çevrimdışı yetki listesini tazeler (fw 1.0.3+ açılış nedenini de bildirir).
+   */
+  async yenidenBaslamayiIzle(cihaz, payload) {
+    const simdi = Date.now();
+    const oncekiSaglik = this.sonSaglikZamani.get(cihaz.cihazId);
+    this.sonSaglikZamani.set(cihaz.cihazId, simdi);
+    const tekrarBaglandi = oncekiSaglik !== undefined && simdi - oncekiSaglik > 90 * 1000;
+
+    const calisma = Number(payload.calisma_suresi_sn ?? (Number(payload.zaman) / 1000));
+    if (!Number.isFinite(calisma)) return;
+    const onceki = this.sonCalismaSuresi.get(cihaz.cihazId);
+    this.sonCalismaSuresi.set(cihaz.cihazId, calisma);
+
+    // Sunucu yeni açıldıysa önceki değer yoktur; cihaz son 2 dk içinde açıldıysa yine sayılır.
+    const yenidenBasladi = onceki === undefined ? calisma < 120 : calisma < onceki;
+
+    if (yenidenBasladi) {
+      const neden = payload.acilis_nedeni || 'bilinmiyor';
+      console.warn(`[CIHAZ] Cihaz ${cihaz.cihazId} yeniden başladı (neden: ${neden}, firmware ${payload.firmware_versiyon || '-'}).`);
+      await prisma.olay.create({
+        data: {
+          tur: 'cihaz_yeniden_basladi',
+          kaynak: 'cihaz',
+          cihazId: cihaz.cihazId,
+          detay: {
+            neden,
+            firmware: payload.firmware_versiyon || null,
+            calismaSuresiSn: Math.round(calisma),
+            oncekiCalismaSuresiSn: onceki === undefined ? null : Math.round(onceki)
+          }
+        }
+      });
+    }
+    if (yenidenBasladi || tekrarBaglandi) {
+      require('./offlineListeSenkronService').listeGonderimiPlanla(`cihaz ${cihaz.cihazId} ${yenidenBasladi ? 'yeniden başladı' : 'tekrar bağlandı'}`);
+    }
+  }
+
   async handleSaglikMesaji(cihaz, payload) {
     try {
       const sonDurum = await this.getSonBilinenDurum(cihaz.cihazId);
+      await this.yenidenBaslamayiIzle(cihaz, payload);
 
       await prisma.cihazDurumu.create({
         data: {

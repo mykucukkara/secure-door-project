@@ -2,6 +2,7 @@
 #include <algorithm>
 
 #ifdef ARDUINO
+#include <esp_system.h>
 #include "config.h"
 #include "FirmwareVersion.h"
 
@@ -22,7 +23,8 @@ MqttManager::MqttManager(const char *brokerHost, uint16_t brokerPort) {
 
     _mqttClient.setServer(brokerHost, brokerPort);
     _mqttClient.setCallback(mqttCallbackTrampoline);
-    _mqttClient.setBufferSize(4096);
+    // Çevrimdışı yetki listesi (PIN + kartlar) tek mesajla gelir; ~200 kişiye yeter.
+    _mqttClient.setBufferSize(16384);
 #if (!defined(NETWORK_USE_ETHERNET) || !NETWORK_USE_ETHERNET) && defined(MQTT_USE_TLS) && MQTT_USE_TLS
     // Bulut broker TLS: sunucu sertifikasi dogrulanmaz ama trafik sifrelenir.
     // Tam dogrulama istenirse setInsecure yerine setCACert(root_ca) kullanilabilir.
@@ -88,6 +90,21 @@ bool MqttManager::publishEntryEvent(const EntryEvent &event) {
     return _mqttClient.publish(_eventTopic.c_str(), payload.c_str());
 }
 
+static const char *resetReasonText() {
+    switch (esp_reset_reason()) {
+        case ESP_RST_POWERON: return "guc_acildi";
+        case ESP_RST_EXT: return "harici_reset";
+        case ESP_RST_SW: return "yazilim";          // ESP.restart(): OTA veya 10 dk kurtarma
+        case ESP_RST_PANIC: return "hata";
+        case ESP_RST_INT_WDT:
+        case ESP_RST_TASK_WDT:
+        case ESP_RST_WDT: return "watchdog";        // ana döngü kilitlendi
+        case ESP_RST_BROWNOUT: return "dusuk_voltaj";
+        case ESP_RST_DEEPSLEEP: return "uyku";
+        default: return "bilinmiyor";
+    }
+}
+
 bool MqttManager::publishHeartbeat(int cihazId) {
     if (!_mqttClient.connected()) return false;
 
@@ -103,6 +120,9 @@ bool MqttManager::publishHeartbeat(int cihazId) {
 #endif
     doc["firmware_versiyon"] = FIRMWARE_VERSION;
     doc["zaman"] = millis();
+    // Sunucu yeniden başlamaları (watchdog, kurtarma, elektrik) buradan izler.
+    doc["calisma_suresi_sn"] = millis() / 1000UL;
+    doc["acilis_nedeni"] = resetReasonText();
 
     std::string payload;
     serializeJson(doc, payload);

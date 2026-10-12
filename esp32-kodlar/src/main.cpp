@@ -168,6 +168,19 @@ static void applyConnectionUnavailable() {
     lcdDisplay.showConnectionUnavailable();
 }
 
+// Sunucuya ulaşılamadığında (MQTT yok ya da sunucu yanıt vermedi) kalıcı yerel
+// listeden karar verir; olay bağlantı gelince sunucuya iletilmek üzere kuyruğa alınır.
+static void decideOffline(EntryEvent &event, const String &credential, bool isCard) {
+    const bool allowed = accessControl.verifyOfflineAccess(credential, isCard);
+    event.sonuc = allowed ? "izin" : "red";
+    event.kullaniciId = std::string(accessControl.getLastOfflineUserId().c_str());
+    if (!allowed) event.redNedeni = std::string(accessControl.getLastOfflineDenyReason().c_str());
+
+    if (allowed) applyAccessDecision(true);
+    else applyAccessDecision(false, "cevrimdisi_yetki_bulunamadi");
+    publishOrQueue(event, isCard ? credential : accessControl.getLastOfflineUserId());
+}
+
 static void processCredential(const String &credential, bool isCard) {
     if (DoorState::mevcutDurumuAl() != Durum::BEKLEMEDE) return;
     if (pendingAccess.active) return;
@@ -193,14 +206,7 @@ static void processCredential(const String &credential, bool isCard) {
         return;
     }
 
-    const bool allowed = accessControl.verifyOfflineAccess(credential, isCard);
-    event.sonuc = allowed ? "izin" : "red";
-    event.kullaniciId = std::string(accessControl.getLastOfflineUserId().c_str());
-    if (!allowed) event.redNedeni = isCard ? "mqtt_yok_kart_dogrulanamadi" : "gecersiz_pin";
-
-    if (allowed) applyAccessDecision(true);
-    else applyAccessDecision(false, "cevrimdisi_yetki_bulunamadi");
-    publishOrQueue(event, isCard ? credential : accessControl.getLastOfflineUserId());
+    decideOffline(event, credential, isCard);
 }
 
 static void processPendingCommands() {
@@ -221,7 +227,8 @@ static void processPendingCommands() {
             otaUpdater.performUpdate(command);
         } else if (command.type == CommandType::ACCESS_RESPONSE) {
             if (!pendingAccess.active || command.requestId != pendingAccess.requestId) continue;
-            if (command.accessAllowed && !pendingAccess.isCard && !command.accessUserId.empty()) {
+            // Sunucunun onayladığı kart/PIN, sunucu yokken de çalışsın diye hatırlanır.
+            if (command.accessAllowed && !command.accessUserId.empty()) {
                 accessControl.rememberOfflineAccess(String(pendingAccess.credential.c_str()), pendingAccess.isCard, String(command.accessUserId.c_str()));
             }
             applyAccessDecision(command.accessAllowed, command.accessReason);
@@ -232,8 +239,20 @@ static void processPendingCommands() {
 
 static void checkAccessResponseTimeout() {
     if (pendingAccess.active && millis() - pendingAccess.sentAtMs >= ACCESS_RESPONSE_TIMEOUT_MS) {
-        applyConnectionUnavailable();
+        // MQTT bağlı ama sunucu yanıt vermedi (ör. backend kapalı): kapıyı kapalı
+        // bırakmak yerine çevrimdışı listeyle karar ver.
+        Serial.println("[AUTH] Sunucu yanit vermedi; cevrimdisi listeyle karar veriliyor.");
+        const PendingAccessRequest istek = pendingAccess;
         pendingAccess = PendingAccessRequest{};
+
+        EntryEvent event;
+        event.cihazOlayId = createEventId();
+        event.cihazId = DEVICE_ID;
+        event.kapiId = DOOR_ID;
+        event.dogrulamaYontemi = istek.isCard ? "kart" : "pin";
+        event.timestampEpoch = currentEpoch();
+        if (istek.isCard) event.okunanUid = istek.credential;
+        decideOffline(event, String(istek.credential.c_str()), istek.isCard);
     }
 }
 
@@ -420,6 +439,7 @@ void setup() {
     lock.begin();
     alertSystem.begin();
     keypadInput.begin();
+    accessControl.setZamanKaynagi(&currentEpoch);
     accessControl.begin();
     OfflineQueue::baslat();
 
