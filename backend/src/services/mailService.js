@@ -33,6 +33,10 @@ function formatDateTr(date) {
   });
 }
 
+// Kapının bulunduğu laboratuvar; tüm e-postalarda belirtilir.
+const LAB = String(process.env.LAB_ADI || 'T1-104').trim();
+const LAB_TAM = `${LAB} numaralı laboratuvar`;
+
 // Panel yalnızca kampüs içinden erişilebilen bir adreste çalıştığı için tüm e-postalarda belirtilir.
 const AG_UYARISI = 'Sisteme yalnızca üniversitenin kablolu (Ethernet) ağına bağlı bir bilgisayardan erişilebilir; '
   + 'bağlantılar Wi-Fi, mobil veri veya kampüs dışından açılmaz.';
@@ -43,12 +47,12 @@ function mailLayout(bodyHtml) {
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e1e5ee">
 <tr><td style="background:#313582;color:#ffffff;padding:18px 24px">
 <div style="font-size:12px;letter-spacing:.06em;opacity:.85">SAKARYA UYGULAMALI BİLİMLER ÜNİVERSİTESİ</div>
-<div style="font-size:18px;font-weight:bold;margin-top:2px">Bilgisayar Mühendisliği · SecureLab</div>
+<div style="font-size:18px;font-weight:bold;margin-top:2px">Bilgisayar Mühendisliği · SecureLab · ${escapeHtml(LAB)} Laboratuvarı</div>
 </td></tr>
 <tr><td style="padding:24px;font-size:15px;line-height:1.55">${bodyHtml}
 <p style="background:#eef4fb;border:1px solid #b9d3ee;border-radius:6px;padding:10px 14px;font-size:14px"><strong>Erişim:</strong> ${escapeHtml(AG_UYARISI)}</p></td></tr>
 <tr><td style="padding:14px 24px;background:#f7f8fb;color:#6b7280;font-size:12px;border-top:1px solid #e1e5ee">
-Bu e-posta SecureLab kapı erişim kontrol sistemi tarafından otomatik gönderilmiştir. Lütfen yanıtlamayın.
+Bu e-posta ${escapeHtml(LAB_TAM)}ın SecureLab kapı erişim kontrol sistemi tarafından otomatik gönderilmiştir. Lütfen yanıtlamayın.
 Şifrenizi kimseyle paylaşmayın; sistem yöneticileri sizden asla şifrenizi istemez.
 </td></tr></table></td></tr></table></body></html>`;
 }
@@ -58,10 +62,10 @@ async function sendPasswordResetEmail({ to, name, resetUrl, expiresAt }) {
   await createTransport().sendMail({
     from: process.env.SMTP_FROM,
     to,
-    subject: 'SecureLab web şifresi yenileme',
-    text: `${name || 'Merhaba'},\n\nWeb şifrenizi yenilemek için aşağıdaki tek kullanımlık bağlantıyı açın:\n${resetUrl}\n\nBağlantı ${formatDateTr(expiresAt)} tarihinde geçersiz olacaktır. Bu talebi siz yapmadıysanız mesajı dikkate almayın.\n\n${AG_UYARISI}`,
+    subject: `SecureLab ${LAB} · web şifresi yenileme`,
+    text: `${name || 'Merhaba'},\n\n${LAB_TAM}ın kapı erişim sistemi SecureLab için web şifrenizi yenilemek üzere aşağıdaki tek kullanımlık bağlantıyı açın:\n${resetUrl}\n\nBağlantı ${formatDateTr(expiresAt)} tarihinde geçersiz olacaktır. Bu talebi siz yapmadıysanız mesajı dikkate almayın.\n\n${AG_UYARISI}`,
     html: mailLayout(`<p>Sayın ${escapeHtml(name || 'kullanıcı')},</p>
-<p>Web şifrenizi yenilemek için 15 dakika geçerli tek kullanımlık bağlantıyı açın:</p>
+<p>${escapeHtml(LAB_TAM)}ın kapı erişim sistemi SecureLab için web şifrenizi yenilemek üzere 15 dakika geçerli tek kullanımlık bağlantıyı açın:</p>
 <p><a href="${escapeHtml(resetUrl)}" style="display:inline-block;background:#056DB0;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px">Şifremi yenile</a></p>
 <p>Bu talebi siz yapmadıysanız mesajı dikkate almayın.</p>`)
   });
@@ -75,10 +79,10 @@ async function sendPasswordResetEmail({ to, name, resetUrl, expiresAt }) {
  */
 async function sendAccountInviteEmail({ to, name, temporaryPassword, loginUrl, expiresAt, yenileme = false }) {
   if (!isMailConfigured()) return false;
-  const baslik = yenileme ? 'SecureLab geçici şifreniz yenilendi' : 'SecureLab hesabınız oluşturuldu';
+  const baslik = yenileme ? `SecureLab ${LAB} · geçici şifreniz yenilendi` : `SecureLab ${LAB} · hesabınız oluşturuldu`;
   const giris = yenileme
-    ? 'SecureLab hesabınız için yönetici tarafından yeni bir geçici şifre oluşturuldu.'
-    : 'Bilgisayar Mühendisliği laboratuvar kapı erişim sistemi SecureLab\'de sizin için bir hesap oluşturuldu.';
+    ? `${LAB_TAM}ın kapı erişim sistemi SecureLab'deki hesabınız için yönetici tarafından yeni bir geçici şifre oluşturuldu.`
+    : `Bilgisayar Mühendisliği ${LAB_TAM}ın kapı erişim sistemi SecureLab'de sizin için bir hesap oluşturuldu.`;
 
   await createTransport().sendMail({
     from: process.env.SMTP_FROM,
@@ -106,12 +110,13 @@ async function sendDoorPinEmail({ to, name, pin, yenilendi = false }) {
   if (!isMailConfigured()) return false;
   const giris = yenilendi
     // Eski şifrenin başka birinde olduğu söylenmez; kişi o şifreyi zaten biliyor.
-    ? 'Hesabınız yeniden etkinleştirildi ve güvenlik nedeniyle size yeni bir kapı şifresi tanımlandı; eski şifreniz artık geçersizdir. Laboratuvar kapısındaki tuş takımı için yeni 6 haneli kapı şifreniz:'
-    : 'Laboratuvar kapısındaki tuş takımı için 6 haneli kapı şifreniz:';
+    ? 'Hesabınız yeniden etkinleştirildi ve güvenlik nedeniyle size yeni bir kapı şifresi tanımlandı; eski şifreniz artık geçersizdir. '
+      + `${LAB_TAM}ın kapısındaki tuş takımı için yeni 6 haneli kapı şifreniz:`
+    : `${LAB_TAM}ın kapısındaki tuş takımı için 6 haneli kapı şifreniz:`;
   await createTransport().sendMail({
     from: process.env.SMTP_FROM,
     to,
-    subject: yenilendi ? 'SecureLab kapı şifreniz yenilendi' : 'SecureLab kapı şifreniz',
+    subject: yenilendi ? `SecureLab ${LAB} · kapı şifreniz yenilendi` : `SecureLab ${LAB} · kapı şifreniz`,
     text: `Sayın ${name || 'kullanıcı'},\n\n${giris} ${pin}\n\nŞifrenizi kimseyle paylaşmayın. Dilerseniz panelde Profilim sayfasından değiştirebilirsiniz. Bu e-postayı okuduktan sonra silmenizi öneririz.\n\n${AG_UYARISI}`,
     html: mailLayout(`<p>Sayın ${escapeHtml(name || 'kullanıcı')},</p>
 <p>${escapeHtml(giris)}</p>
